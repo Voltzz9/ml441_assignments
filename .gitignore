@@ -7,4 +7,7 @@
 *.toc
 *.fls
 *.fdb_latexmk
-*.synctex.gz*.csv
+*.synctex.gz
+
+# Large data files
+assign1/badDataSet.csv
