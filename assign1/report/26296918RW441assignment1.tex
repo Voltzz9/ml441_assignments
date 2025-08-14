@@ -207,6 +207,8 @@
 	\hline
 	T & Target class imbalance &  It can be observed in Figure~\ref{fig:target_dist_entire} that there is a severe target class imbalance, with only 2747 observations in class 4.  This means that certain classes are better represented in the dataset and can lead to machine learning model bias. \\
 	\hline
+	T & Target variable missing values & Testing revealed that there are 60 missing observations in the target variable. This rounds to 0.00\% of the data, hence Table~\ref{tab:data_quality} not showing any problems.\\
+	\hline
 \end{longtable}
 
 \begin{figure}[H]
@@ -319,19 +321,20 @@
 	A4, A5, A7, A9, A10, A12, A13, A16, A18, A20, A21 & Missing values & Remove observations & Since testing revealed that there are a certain 2947 rows with all these features missing simultaneously, it makes sense to simply remove all these observations since they have a large amount of missing information. It is useful to note that the distribution of the target variable in these observations matches the overall distribution of the target variable for the whole dataset observed in Figure~\ref{fig:target_dist}. This means that we are not likely to lose any useful information about a certain target category when removing these observations.  \\ \hline
 	A5 & Outlier observations & Remove observations & Since there are only 26 negative observations, we can safely drop these as they make up only a minute part of the dataset. \\
 	\hline
-	A8 & Outlier observations & Observation removal & There must be an error with the observations in question because the outliers are so incredibly skewed. Through testing it was found that there are 18 observations greater than 50,000,000 with the 99.9th percentile sitting at 6699.0. \\ \hline
+	A8 & Outlier observations & Remove observations & There must be an error with the observations in question because the outliers are so incredibly skewed. Through testing it was found that there are 18 observations greater than 50,000,000 with the 99.9th percentile sitting at 6699.0. \\ \hline
 	A9, A11 & Strongly correlated features & Nothing & Despite these features being strongly correlated, there is still a chance that the features' relationship makes sense in the domain context. Therefore we elect to not remove either feature.\\ \hline
 	A10 & Abnormal data type & Remove observations & Testing revealed that the levels of this suspected categorical variable range from 100–254 predominantly. Since many observations have the value 'a', we can guess this error is not at random and the character 'a' could be replaced with 255. This fits the distribution seen in Figure~\ref{fig:f10}. Despite these facts, one would need to consult a domain expert before replacing it by 255, therefore the safer option is to remove the observations. \\ \hline
 	A14, A18, A30, A32, A42, A43, A50, A52, A53 & Class imbalance, $90\%<$\textit{Mode\%} $< 95\%$ & Under-sample majority classes & Due to the large number of observations in this dataset, we can safely under-sample the majority class to reduce the class imbalances. If this reduces the dataset's size too much, we can always consider oversampling the minority classes. \\ \hline
 	A16 & Cardinality of 1 & Drop feature & This categorical variable can be removed since it will have no effect on a model's performance. \\ \hline
 	A17 & Cardinality of 1 & Drop feature & This categorical variable can be removed since it will have no effect on a model's performance. \\ \hline
 	A20, A21, A22, A23, A24, A25, A26, A27, A28, A29, A31, A33, A34, A35, A36, A37, A38, A39, A40, A41, A44, A45, A46, A47, A48, A51, A54, A55, A56, A57, A58, A59, A60 & Severe class imbalance, $95\%\le$\textit{Mode\%} $< 100\%$ & Under-sample majority classes & Due to the large number of observations in this dataset, we can safely under-sample the majority class to reduce the class imbalances. If this reduces the dataset's size too much, we can always consider oversampling the minority classes. \\ \hline
-	A21 & Missing values & Drop feature & Testing revealed that the correlation between missingness of A21 and the target is -0.0004. Due to the high number of missing values we should remove the feature. \\ \hline
+	A21 & Missing values & Drop feature & Testing revealed that the correlation between missingness of A21 and the target is -0.0004. This only means that there is not a linear relationship. It is possible that the missingness is still related to the target feature. Plotting the confusion matrix Figure~\ref{fig:a20a21} indicates that A21 has the same values as A20 for every observation. This makes it redundant. Due to the high number of missing values we should remove the feature. It still might be worth investigating adding the missingness as an extra category. \\ \hline
 	A35 & Extremely high class imbalance & Drop feature & Since there are only three observations in the second class for this feature, it should be removed without affecting model performance. \\ \hline
 	A61 & ID Feature & Drop feature & It was confirmed that this feature perfectly fits the description of an ID column, meaning it has no predictive power and can be removed. \\ \hline
 	A61, A1 & Strongly correlated features & Drop feature & Since we have already established that A61 is a redundant ID feature and have determined to remove it, we have solved the issue. \\ \hline
 	A62 & Cardinality of 1 & Drop feature & This categorical variable can be removed since it will have no effect on a model's performance. \\ \hline
 	T & Target class imbalance & Synthetic minority oversampling technique & Since we have so few observations for classes 3, 4, 5, 6 and 7; using SMOTE will help resolve our issue by creating new instances to balance out the classes.  \\ \hline
+	T & Target variable missing values & Remove observations & Since such an insignificant number of observations are missing, we can safely drop these observations without affecting the size of our dataset much as all. \\ \hline
 \end{longtable}
 
 \begin{figure}
@@ -343,7 +346,14 @@
 	\end{minipage}
 \end{figure}
 
-
+\begin{figure}
+	\begin{minipage}[t]{\textwidth}
+		\centering
+		\includegraphics[width=\textwidth]{images/confusion_matrix_A20_A21.pdf}
+		\caption{Confusion matrix of A20 vs A21}
+		\label{fig:a20a21}
+	\end{minipage}
+\end{figure}
 
 
 %\bibliographystyle{plainnat}
