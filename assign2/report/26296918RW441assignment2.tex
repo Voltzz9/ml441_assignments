@@ -2,7 +2,8 @@
 
 \usepackage{cite}
 \usepackage{amsmath,amssymb,amsfonts}
-\usepackage{algorithmic}
+\usepackage{algpseudocode}
+\usepackage{algorithm}
 \usepackage{graphicx}
 \usepackage{textcomp}
 \usepackage{xcolor}
@@ -34,7 +35,7 @@ component, formatting, style, styling, insert.
 \end{IEEEkeywords}
 
 \section{Introduction}
-introooo
+introooo TODO remove
 ``Fig.~\ref{fig}'', even at the beginning of a sentence.
 
 \begin{table}[htbp]
@@ -72,6 +73,37 @@ quantities and units. For example, write ``Temperature (K)'', not
 
 \section{Introduction}
 \section{Background}
+
+\subsection{k-nearest Neighbours (kNN)}
+The nearest neighbour algorithm is an example of instance-based learning where the prediction for an instance is made by comparing the instance to similar training instances. This is a lazy learning approach since we delay processing training data until prediction is needed. Since kNN is also similarity-based, it is non-parametric, which means that it does not learn a mapping from the input space to the output space.
+
+The k-nearest neighbour algorithm is presented in Algorithm~\ref{alg:knn} which explains that we calculate the distance from each data point in our training dataset to the distance. From there, we choose the closed \textit{k} observations and perform inference. In a classification context we may perform majority voting to determine the class, in a regression context we use the mean or median of the \textit{k} nearest observations.
+
+In order to use the algorithm we need to define a value of \textit{k} which decides the number of nearest neighbour instances to consider when predicting. Choosing a value a low value for \textit{k} results in a high variance, but low bias leading to an unstable model which tends to overfit. Choosing a large value for \textit{k} results in a smaller variance, but high bias, leading to a more stable model which tending to underfit. Measures such as \textit{k}-fold cross validation assist in the selection of a value of \textit{k}.
+
+\begin{algorithm}[htbp]
+\caption{k-Nearest Neighbors Algorithm}
+\label{alg:knn}
+\begin{algorithmic}
+\Function{kNN}{$D, x, k$}
+\ForAll{$x' \in D$}
+\State $d = \text{distance}(x, x')$
+\EndFor
+\State sort($d$)
+\State $S = $ set of $k$ patterns in $D$ closest to $x$
+\State \Return class as majority class in $S$
+\EndFunction
+\end{algorithmic}
+\end{algorithm}
+\noindent
+\textbf{Notation:} $D$ denotes the training dataset, $x$ is the query instance, $k$ is the number of nearest neighbours, and $\text{distance}(\cdot)$ is a distance metric (e.g., Euclidean distance).
+
+
+\subsection{Classification Trees}
+Classification trees represent a fundamental approach in supervised machine learning for predictive modelling, where the learned model forms a hierarchical tree structure with non-terminal nodes representing decisions on descriptive features and terminal leaf nodes representing target feature predictions \cite{quinlan1993c45}. A classification tree is a type of decision tree where leaf nodes represent different discrete classes.
+
+\subsection{Expectations With Respect to Data Quality Issues}
+
 \section{Methodology}
 \section{Empirical Procedure}
 \section{Research Results}
