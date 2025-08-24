@@ -102,7 +102,50 @@ In order to use the algorithm we need to define a value of \textit{k} which deci
 \subsection{Classification Trees}
 Classification trees represent a fundamental approach in supervised machine learning for predictive modelling, where the learned model forms a hierarchical tree structure with non-terminal nodes representing decisions on descriptive features and terminal leaf nodes representing target feature predictions \cite{quinlan1993c45}. A classification tree is a type of decision tree where leaf nodes represent different discrete classes.
 
+Classification trees employ recursive partitioning where a training dataset is systematically divided into increasingly homogeneous subsets based on feature values. It uses a greedy strategy to select the feature to partition upon at each split that maximises information gain \cite{kelleher2020fundamentals}. The information gain criterion, derived from Shannon's entropy measure, quantifies the reduction in uncertainty achieved by partitioning the data according to a specific feature test.
+Formally, given a dataset $D$ with $M$ different classes, the entropy is calculated as:
+
+\[
+H(D) = -\sum_{m=1}^{M} p(y_m) \log_{M} p(y_m)
+\]
+
+where $p(y_m)$ represents the probability of class $y_m$ occurring in $D$. When the dataset is partitioned on feature $\alpha$ into $O$ outcomes, the information gain is computed as:
+
+\[
+\text{gain}(\alpha) = H(D) - H_\alpha(D)
+\]
+
+where 
+
+\[
+H_\alpha(D) = \sum_{o=1}^{O} p_o \, H(D_o)
+\]
+
+represents the weighted entropy after the split.
+
+Since we recursively partition until either a stopping condition is satisfied or all subsets are homogeneous, classification trees inherently lead to overfitting, as the algorithm attempts to perfectly classify all training instances, often creating overly complex trees that capture noise rather than underlying patterns \cite{quinlan1993c45}. To remedy this, post-pruning techniques are used to remove branches that do not improve generalisation performance.
+
+Classification trees can naturally handle both categorical and numerical features. Classification tree induction algorithms can cope with missing values. Unfortunately, classification trees exhibit an axis-aligned bias which restricts decision boundaries to be parallel to feature axes.
+
 \subsection{Expectations With Respect to Data Quality Issues}
+Since kNN relies heavily on distance metrics, it will be severely impacted by missing values since it cannot compute meaningful distances between points. This can however be handled by ignoring the missing values in the distance calculation and scaling up the weight of the non-missing descriptive features. The kNN algorithm can actually be used as an imputer itself as well. If nothing is done the algorithm will either fail or give biased distances. Classification trees on the other hand handle missing values more gracefully. Classification trees can adjust the gain ratio calculation 
+\[
+\text{gainRatio}(x) = (1 - F) \times \big( H(D) - H_x(D) \big)
+\]
+
+\text{where } F \text{ is the fraction of missing patterns.}
+
+
+
+With regards to the Facet feature being correlated with the Aspect feature, kNN will be moderately impacted since the distance calculation used will overweight certain areas of similarity. There is no built in mechanism to handle feature correlation as a data issue. Classification trees will be minimally impacted since trees naturally handle correlated features through feature selection.
+• The Facet feature is correlated with the Aspect feature.
+• The Inclination feature contains only noisy values.
+• There remain features with outliers.
+• There remain features with numeric ranges that differ significantly from one another.
+• There are numerical and categorical features.
+• Feature Water Level has cardinality of one.
+• Feature Observation ID has a unique value for each observation.
+• The class distribution remains skew
 
 \section{Methodology}
 \section{Empirical Procedure}
