@@ -137,9 +137,13 @@ Since kNN relies heavily on distance metrics, it will be severely impacted by mi
 
 
 
-With regards to the Facet feature being correlated with the Aspect feature, kNN will be moderately impacted since the distance calculation used will overweight certain areas of similarity. There is no built in mechanism to handle feature correlation as a data issue. Classification trees will be minimally impacted since trees naturally handle correlated features through feature selection.
-• The Facet feature is correlated with the Aspect feature.
-• The Inclination feature contains only noisy values.
+With regards to the Facet feature being correlated with the Aspect feature, kNN will be moderately impacted since the distance calculation used will overweight certain areas of similarity. There is no built in mechanism to handle feature correlation as a data issue. Classification trees will be minimally impacted since trees naturally handle correlated features through the feature selection process involving the gain ratio/information gain. This means that the classification tree induction will likely select one feature and ignore the correlated redundant one.
+
+Concerning the Inclination feature only containing noisy values, the impact on the kNN algorithm will depend on the value of \textit{k} since higher values are more sensitive to noise and lower values are more robust to noise. However, since there are many predictive features the value won't dominate the distance calculation. Classification trees are robust to noise and will handle it through pruning. The noisy patterns will end up in small leaf nodes as the model overfits and post-pruning removes these leaves. The noise becomes a minority and does not affect majority class prediction.
+
+Since kNN employs distance measures which are often sensitive to outliers,
+
+
 • There remain features with outliers.
 • There remain features with numeric ranges that differ significantly from one another.
 • There are numerical and categorical features.
