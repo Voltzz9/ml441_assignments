@@ -145,38 +145,49 @@ Since kNN employs distance measures which are often sensitive to outliers since 
 
 The kNN algorithm will be severly impacted from features with numeric ranges that differ significantly from one another since features with large ranges dominate distance calculations. For example, if one feature takes on the value of 0 or 1 and another takes on the value of 0 or 100 000, the second will overwhelm the distance calculation. Without normalisation, the kNN algorithm will be unreliable. Classification trees have a natural robustness to different feature scales and therefore will be minimally impacted. This stems from trees using individual feature values for splitting thresholds.
 
-The mixed data types will affect the kNN algorithm since it requires special handling for mixed types such as using the Gower's similarity with different similarity measures for different types. However, in this dataset since there are two categorical variables with the first encoded over four columns and the second over 40 and 10 numeric features there can be a distance bias toward the numeric features. Euclidean distance assumes features are continuous, but the categorical features are encoded as zero or one. Classification trees naturally handle mixed data types since they directly compare categorical features against each other for splitting, and the splitting is simply decided off information gain.
+The mixed data types will affect the kNN algorithm since it requires special handling for mixed types such as using the Gower's similarity with different similarity measures for different types. However, in this dataset since there are two categorical variables with the first encoded over four columns and the second over 40 and 13 numeric features there can be a distance bias toward the numeric features. Euclidean distance assumes features are continuous, but the categorical features are encoded as zero or one. Classification trees naturally handle mixed data types since they directly compare categorical features against each other for splitting, and the splitting is simply decided off information gain.
 
 The impact of the Water Level feature having a cardinality of one will be none at all for kNN. It will only contribute the the distance calculation unnecessarily and be a computational waste. Since all observations have the same value, all the distance measures will be equally skewed, resulting in no impact at all. The classification tree will never select this feature during tree indication since there is zero information gain because all values are identical. Therefore, classification trees naturally handle this issue and it will have no impact.
 
 The Observation ID unique feature will have a sever impact on kNN since each instance appears maximally different from all others on this feature. The problem is that this dominates distance calculations making all instances seem dissimilar. It breaks the fundamental assumption of similarity-based learning. Classification trees will overfit severely since each unique value would create a separate branch. The information gain maximisation favours features with many outcomes so the result will be an extremely busy tree with poor generalisation.
 
-The skewed class distribution impact on kNN depends on the value of \textit{k}, since a smaller \textit{k} is more robust to class imbalance whilst a large \textit{k} results in the majority class dominating the predictions. Methods such as SMOTE must be considered. The impact of classification trees is moderate since they are sensitive to skewed distributions. The minority class instances result in small leaves which are likely to be pruned, then the combined instances will be classification as a majority class. This results in poor minority class recognition.
+The skewed class distribution impact on kNN depends on the value of \textit{k}, since a smaller \textit{k} is more robust to class imbalance whilst a large \textit{k} results in the majority class dominating the predictions. Methods such as the Synthetic Minority Over-sampling Technique (SMOTE) must be considered. The impact of classification trees is moderate since they are sensitive to skewed distributions. The minority class instances result in small leaves which are likely to be pruned, then the combined instances will be classification as a majority class. This results in poor minority class recognition.
 
 \section{Methodology}
 \section{Empirical Procedure}
+
+\subsection{Data Pre-processing}
+In this section we discuss the data pre-processing steps applied to the dataset prior to implementing the k-nearest neighbour and classification tree algorithms.
+\subsubsection{k-Nearest Neighbour Data Pre-processing}
+First, the unique identifier feature \texttt{Observation\_ID} is removed because unique values make all instances appear maximally different. This breaks the similarity-based learning assumptions and leads to the feature dominating distance calculations. The feature has no signal that can provide the model with any benefit.
+
+Second, we removed the constant feature \texttt{Water\_Level} since it provides zero discriminative information but adds computational overhead to all the distance calculations. We can be certain that the model performance will not change based on the fact that the feature has a cardinality of one.
+
+Third, we normalised the numeric features by applying linear scaling to ensure the numeric features are in the same range being between zero and one. Features with large ranges will simply dominate distance calculations over smaller range features. This would make the model unreliable and heavily weight features with higher values. Specifically, \texttt{Elevation}, \texttt{Aspect}, \texttt{Slope}, \texttt{Horizontal\_Distance\_To\_Hydrology}, \texttt{Vertical\_Distance\_To\_Hydrology}, \texttt{Horizontal\_Distance\_To\_Roadways}, \texttt{Hillshade\_9am}, \texttt{Hillshade\_Noon}, \texttt{Hillshade\_3pm}
+ are all normalised.
+ 
+ Fourth, we handled the missing values by using kNN imputation with a \textit{k} of five. There are only 298 observations that are missing the \texttt{Slope} feature. For each of these we computed the Euclidean distance between the observation and all others based on available features, then identified the \textit{k} closest rows (neighbours) that have the missing feature value. The mean of these values were calculated and imputed to the missing observation.
+ 
+ Fifth, we addressed the feature correlation issue by removing the \texttt{Facet} feature since it is just providing redundant information. Correlated features can overweight certain aspects in distance calculations resulting in worse model performance. Essentially, the \texttt{Aspect} feature would have double the influence on the model as the other features if \texttt{Facet} was not removed.
+ 
+ Sixth, the mixed data types issue was handled by converting the one categorical variable \texttt{Soil\_Type1} to numeric. This was achieved by simply replacing all the instances with a \textit{positive} value with the number one, and the \textit{negative} instances with zero. This approach was chosen since it aligned the feature with the other soil type features which all take on the values of either one or zero.
+ 
+ Seventh, the features containing outliers were left untouched. The kNN algorithm has moderate sensitivity to feature-based outliers, but a small \textit{k} value provides natural protection.
+ 
+ Eighth, SMOTE was used to improve the class imbalance. Since the five minority classes had significantly fewer observations than the majority two classes, we employed SMOTE to increase the number of minority class observations to 20\% of the majority class. This partial balancing approach was used since the dataset only increased in size by 34\%, as opposed to the dataset exploding in size if they were all were made equal. For example, if we over-sample class 4 to 283,301 we'd create 280 000 synthetic samples for one class. This is massive and risky for overfitting. On top of this Tomek links for majority class under-sampling was also used to reduce the number of observations in the majority classes. Using this under-sampling technique alone would not be sufficient since only a small fraction of the majority samples are removed. The Tomek link technique resulted in the majority classes reducing by roughly 60 000 observations in each majority class. That is, Class 1 now has 158,427 samples, and Class 2 now has 225,918 samples after reduction.
+ 
+ Ninth, the noisy feature \texttt{Inclination} was removed since it was confirmed to contain only noise. Noisy features affect distance calculations, although larger \textit{k} values provide some robustness it is safer to remove it since we know it contains no signal.
+
+\subsubsection{Classification Trees Data Pre-processing}
+\subsection{Control Parameter Tuning}
+
+\subsection{Performance Metrics}
+
+\subsection{Analysis Process}
+
 \section{Research Results}
 \section{Conclusion}
 \section*{References}
-
-Please number citations consecutively within brackets \cite{eason1955}. The 
-sentence punctuation follows the bracket \cite{maxwell1892}. Refer simply to the reference 
-number, as in \cite{jacobs1963}---do not use ``Ref. \cite{jacobs1963}'' or ``reference \cite{jacobs1963}'' except at 
-the beginning of a sentence: ``Reference \cite{jacobs1963} was the first $\ldots$''
-
-Number footnotes separately in superscripts. Place the actual footnote at 
-the bottom of the column in which it was cited. Do not put footnotes in the 
-abstract or reference list. Use letters for table footnotes.
-
-Unless there are six authors or more give all authors' names; do not use 
-``et al.''. Papers that have not been published, even if they have been 
-submitted for publication, should be cited as ``unpublished'' \cite{elissa}. Papers 
-that have been accepted for publication should be cited as ``in press'' \cite{nicole}. 
-Capitalize only the first word in a paper title, except for proper nouns and 
-element symbols.
-
-For papers published in translation journals, please give the English 
-citation first, followed by the original foreign-language citation \cite{yorozu1987}.
 
 \bibliographystyle{IEEEtran}
 \bibliography{references}
