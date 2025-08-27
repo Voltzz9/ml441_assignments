@@ -55,12 +55,6 @@ copy& More table copy$^{\mathrm{a}}$& &  \\
 \end{center}
 \end{table}
 
-\begin{figure}[htbp]
-\centerline{\includegraphics{fig1.png}}
-\caption{Example of a figure caption.}
-\label{fig}
-\end{figure}
-
 Figure Labels: Use 8 point Times New Roman for Figure labels. Use words 
 rather than symbols or abbreviations when writing Figure axis labels to 
 avoid confusing the reader. As an example, write the quantity 
@@ -208,7 +202,7 @@ In this section we discuss the custom cross-validation approach used to tune the
 The three primary parameters were optimised over during a 5-fold stratified cross-validation on a 20\% subset for computational efficiency. First, is the value of \textit{k} which controls the number of nearest neighbours to consider. Values of [3, 5, 7, 9, 11, 15] were considered. Second, both the options for the weights parameter were considered. Specifically, uniform where all neighbours are weighted equally and distance weighting where closer neighbours have more influence. Third, three distance metrics were considered: Euclidean distance, manhattan distance, and minkowski distance (which is a generalisation of both with a \textit{p} parameter). Since there are three parameters with six, two, and three options respectively, there are $6 \times 2 \times 3 = 36$ parameter combinations to test in the cross-validation. 
 	
 \subsubsection{Classification Trees Control Parameter Tuning}
-The five primary parameters were optimised over during a 5-fold stratified cross-validation on a 20\% subset for computational efficiency.  First, four maximum depth parameter values were considered: [10, 15, 20, 25]. This parameter controls tree depth to balance complexity against generalisation. Second, the minimum number of samples required to split an internal node. The values of [2, 5, 10, 20] were considered. Higher values prevent overfitting by requiring more evidence for splits. Third, the minimum number of samples required at leaf nodes was tuned, with values of [1, 2, 5, 10]. This prevents the formation of overly specific rules that do not generalise well. Fourth, the splitting criterion was evaluated using both \textit{gini} (Gini impurity) and \textit{entropy} (information gain). Gini is computationally faster, while entropy provides a more theoretically principled approach. Finally, the \textit{max\_features} parameter was tuned over ['sqrt', 'log2', None], which controls the number of features considered for the best split. Using \textit{sqrt} or \textit{log2} introduces randomness to improve generalisation, while None considers all features. Since there are five parameters with four, four, four, two, and three options respectively, there are $4 \times 4 \times 4 \times 2 \times 3 = 384$ parameter combinations tested. 
+The five primary parameters were optimised over during a three-fold stratified cross-validation on a 20\% subset for computational efficiency.  First, four maximum depth parameter values were considered: [10, 15, 20, 25]. This parameter controls tree depth to balance complexity against generalisation. Second, the minimum number of samples required to split an internal node. The values of [2, 5, 10, 20] were considered. Higher values prevent overfitting by requiring more evidence for splits. Third, the minimum number of samples required at leaf nodes was tuned, with values of [1, 2, 5, 10]. This prevents the formation of overly specific rules that do not generalise well. Fourth, the splitting criterion was evaluated using both \textit{gini} (Gini impurity) and \textit{entropy} (information gain). Gini is computationally faster, while entropy provides a more theoretically principled approach. Finally, the \textit{max\_features} parameter was tuned over ['sqrt', 'log2', None], which controls the number of features considered for the best split. Using \textit{sqrt} or \textit{log2} introduces randomness to improve generalisation, while None considers all features. Since there are five parameters with four, four, four, two, and three options respectively, there are $4 \times 4 \times 4 \times 2 \times 3 = 384$ parameter combinations tested. 
 
 
 \subsection{Performance Metrics}
@@ -229,8 +223,96 @@ Statistical significance testing was used to perform a rigorous comparison throu
 TODO finish
 
 \section{Research Results}
+\subsection{Parameter Tuning Results}
+\subsubsection{K-nearest Neighbours}
+The custom five-fold cross-validation grid search returned the best kNN parameters with $k=3$, the Manhattan distance metric and the distance weight function used in prediction. Table~\ref{tab:knn_comparison} gives the top five models ordered by mean cross-validation score they achieving during the grid search. The values of \textit{k} are all low in the table indicating that higher values of \textit{k} result in the model under-fitting and not performing as well on the validation sets. This table also suggests that the choice of distance metric has a smaller effect on performance compared to the number of neighbours. Additionally, using distance-based weighting appears consistently beneficial, as it prioritises closer neighbours and improves prediction accuracy.
+
+\begin{table}[htbp]
+	\caption{Top Performing KNN Models with Different Hyperparameters}
+	\centering
+	\begin{tabular}{|c|c|c|c|c|c|}
+		\hline
+		\textbf{Model} & \textbf{Mean CV Score} & \textbf{Std CV Score} & \textbf{Metric} & \textbf{$k$} & \textbf{Weights} \\ \hline
+		1 & 0.8312 & 0.0019 & manhattan & 3 & distance \\ \hline
+		2 & 0.8310 & 0.0030 & manhattan & 5 & distance \\ \hline
+		3 & 0.8295 & 0.0015 & euclidean & 3 & distance \\ \hline
+		4 & 0.8295 & 0.0015 & minkowski & 3 & distance \\ \hline
+		5 & 0.8281 & 0.0028 & manhattan & 7 & distance \\ \hline
+	\end{tabular}
+	\label{tab:knn_comparison}
+\end{table}
+
+
+Experimentation exhibited in Figure~\ref{fig:knn-perf} shows how as the value of \textit{k} increases, the training and test error both decrease and never trend upward again. We confirm that the parameters [3, 5, 7, 9, 11, 15] over which we performed the grid search are reasonable since they should all result in their own balance between underfitting and overfitting. The \textit{k} value of one was excluded from this search due to the glaring difference which will always occur between the test and the train accuracies. Adding the value would also increase the computational complexity unnecessarily.
+
+\begin{figure}[htbp]
+	\centering
+	\includegraphics[width=0.5\textwidth]{../plots/knn_performance.pdf}
+	\caption{Training vs. test accuracy of kNN algorithm as \textit{k} increases.}
+	\label{fig:knn-perf}
+\end{figure}
+
+
+\subsubsection{Classification Trees}
+The classification trees parameter tuning resulting in the optimal model with the gini criterion being used, a maximum depth of 25, no maximum number of features, the minimum number of samples in a leaf to be one and the minimum number of samples required to split on being two. Table~\ref{tab:dt_comparison} presents the top five models from the grid search ranked by mean cross-validation score. The results indicate that deeper trees tend to perform better, as shown by the highest scoring model having a depth of 25. Reducing the maximum depth or increasing the minimum number of samples required to split generally leads to a slight decrease in performance, suggesting that the dataset benefits from the ability to model complex interactions.
+
+The small differences in mean cross-validation scores among the top models indicate that the performance is relatively stable across minor variations in parameters. Additionally, the low standard deviations show that the model’s performance is consistent across the folds of cross-validation. Overall, these results suggest that while the decision tree can capture non-linear relationships effectively, careful tuning of depth and split parameters is necessary to balance model complexity and generalisation.
+
+
+
+\begin{table}[htbp]
+	\caption{Comparison of Decision Tree Models with Different Hyperparameters}
+	\begin{center}
+		\begin{tabular}{|c|c|c|c|}
+			\hline
+			\textbf{Model} & \textbf{Mean CV Score} & \textbf{Std CV Score} & \textbf{Parameters} \\
+			\hline
+			1 & 0.7965 & 0.0018 & gini, 25, None, 1, 2 \\ \hline
+			2 & 0.7957 & 0.0037 & gini, 20, None, 1, 5 \\ \hline
+			3 & 0.7955 & 0.0021 & gini, 25, None, 1, 5 \\ \hline
+			4 & 0.7949 & 0.0039 & gini, 25, None, 2, 2 \\ \hline
+			5 & 0.7947 & 0.0026 & gini, 20, None, 1, 10 \\ \hline
+			\multicolumn{4}{p{\linewidth}}{%
+				$^{\mathrm{a}}$Parameter order: criterion, max\_depth, max\_features, min\_samples\_leaf, min\_samples\_split.%
+			} 
+		\end{tabular}
+		\label{tab:dt_comparison}
+	\end{center}
+\end{table}
+
+The effect of the depth parameter is shown by Figure~\ref{fig:dt-perf}. We observe that as the maximum depth of the classification tree increase, the training error decreases as expected. The test error decreases until a point at which it begins to increase again due to overfitting. This is since the model becomes too complex and begins modelling noise as opposed to signal.
+
+
+\begin{figure}[htbp]
+	\centering
+	\includegraphics[width=0.5\textwidth]{../plots/dt_training_vs_test_error.pdf}
+	\caption{Effect of maximum depth parameter on classification trees.}
+	\label{fig:dt-perf}
+\end{figure}
+
+\subsection{Cross-validation Results}
+Note that scores presented in Table~\ref{tab:dt_comparison} and Table~\ref{tab:knn_comparison} represent the accuracy on a small subset (20\% for kNN and 10\% for the classification trees) of the data. The following results are from the model applied to the \textit{entire} dataset. 
+
+\subsubsection{K-nearest Neighbours}
+
+For each fold in the 10-fold cross-validation, the SMOTE and Tomek techniques were all only applied training samples. This resulted in a kNN mean accuracy of 0.9089 across the 10 folds. The accuracy scores ranged from 0.9065 to 0.9116 which showed that the algorithm generalises well.
+
+\subsubsection{Classification Trees}
+
+
+
+
+TODO include learning curves
+
+
+\subsection{Computational Analysis}
+
+\subsection{Statistical Significance Testing}
+
+\subsection{Feature Importance Analysis}
+
+
 \section{Conclusion}
-\section*{References}
 
 \bibliographystyle{IEEEtran}
 \bibliography{references}
