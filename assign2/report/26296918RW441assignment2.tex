@@ -297,6 +297,21 @@ Note that scores presented in Table~\ref{tab:dt_comparison} and Table~\ref{tab:k
 
 For each fold in the 10-fold cross-validation, the SMOTE and Tomek techniques were all only applied training samples. This resulted in a kNN mean accuracy of 0.9089 across the 10 folds. The accuracy scores ranged from 0.9065 to 0.9116 which showed that the algorithm generalises well.
 
+\begin{table}[htbp]
+	\centering
+	\caption{Performance Comparison of KNN and Decision Tree Models}
+	\label{tab:model_comparison}
+	\begin{tabular}{|l|c|c|c|c|}
+		\hline
+		\textbf{Model} & \textbf{Accuracy} & \textbf{Precision} & \textbf{Recall} & \textbf{F1-Score} \\
+		\hline
+		KNN & $0.9089 \pm 0.0028$ & $0.83$ & $0.82$ & $0.82$ \\
+		\hline
+		Decision Tree & $0.9160 \pm 0.0051$ & $0.92$ & $0.92$ & $0.92$ \\
+		\hline
+	\end{tabular}
+\end{table}
+
 \subsubsection{Classification Trees}
 
 
