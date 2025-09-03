@@ -217,10 +217,9 @@ Proper train/test methodology was used to prevent data leakage. Specifically, th
 
 A custom cross-validation implementation was employed to ensure proper resampling and that the SMOTE and Tomek techniques were only applied within each \textit{training} fold. The validation was unbiased since it was performed on the original unbalanced data.
 
-TODO add learning curve analysis
+The learning curves of both the classification trees and kNN algorithms were compared by sampling increasingly larger training subsets of the data. These training subsets are then used to train the models, obviously in the case of kNN the training data is the data it is \textit{fit} to (since kNN does not train). The accuracy performance was then plotted for both the training and test sets. Each iteration was performed with three-fold cross validation.
 
-Statistical significance testing was used to perform a rigorous comparison through the t-test to determine if performance differences in the cross-validation are meaningful. Confidence intervals were used to provide uncertainty bounds around estimates.
-TODO finish
+The Mann-Whitney U test \cite{mann1947test} was used to perform a pairwise comparison ($1 \times 1$) between the two models' cross validation results.  This is a non-parametric test assumes the data (accuracies in this case) is non-parametric and that the runs of the models are independent. The test can be performed on small samples (in this case 10 per group) making it useful despite having lower power.
 
 \section{Research Results}
 \subsection{Parameter Tuning Results}
@@ -295,25 +294,29 @@ Note that scores presented in Table~\ref{tab:dt_comparison} and Table~\ref{tab:k
 
 \subsubsection{K-nearest Neighbours}
 
-For each fold in the 10-fold cross-validation, the SMOTE and Tomek techniques were all only applied training samples. This resulted in a kNN mean accuracy of 0.9089 across the 10 folds. The accuracy scores ranged from 0.9065 to 0.9116 which showed that the algorithm generalises well.
+For each fold in the 10-fold cross-validation, the SMOTE and Tomek techniques were all only applied training samples. This resulted in a kNN mean accuracy of 0.9184 across the 10 folds. The accuracy scores ranged from 0.9170 to 0.9202 which showed that the algorithm generalises well. The high one-vs-rest ROC-AUC score of 0.9721 demonstrates excellent discriminatory ability across all seven classes, significantly outperforming the classification tree model. The model achieves strong precision (0.9196) and recall (0.9184) balance, indicating effective identification across the multiclass problem. The F1-score of 0.9187 confirms the robust balance between precision and recall. The low standard deviations across all metrics indicate stable and reliable classification performance across different data splits.
 
 \begin{table}[htbp]
 	\centering
-	\caption{Performance Comparison of KNN and Decision Tree Models}
+	\caption{Performance Metrics of KNN and Classification Tree Models (Mean $\pm$ Std) over 10 folds}
 	\label{tab:model_comparison}
-	\begin{tabular}{|l|c|c|c|c|}
+	\begin{tabular}{|l|c|c|}
 		\hline
-		\textbf{Model} & \textbf{Accuracy} & \textbf{Precision} & \textbf{Recall} & \textbf{F1-Score} \\
+		\textbf{Metric} & \textbf{KNN} & \textbf{Classification Tree} \\
 		\hline
-		KNN & $0.9089 \pm 0.0028$ & $0.83$ & $0.82$ & $0.82$ \\
-		\hline
-		Decision Tree & $0.9160 \pm 0.0051$ & $0.92$ & $0.92$ & $0.92$ \\
+		Accuracy & $0.9184 \pm 0.0011$ & $0.9276 \pm 0.0023$ \\
+		Precision & $0.9196 \pm 0.0011$ & $0.9280 \pm 0.0024$ \\
+		Recall & $0.9184 \pm 0.0011$ & $0.9276 \pm 0.0023$ \\
+		F1-Score & $0.9187 \pm 0.0011$ & $0.9278 \pm 0.0023$ \\
+		ROC-AUC & $0.9721 \pm 0.0005$ & $0.9562 \pm 0.0015$ \\
 		\hline
 	\end{tabular}
 \end{table}
 
+
+
 \subsubsection{Classification Trees}
-For the classification trees 10-fold cross validation was performed with SMOTE only applied to the training folds. The maximum accuracy of all runs was 0.9202 and the minimum was 0.9125. The mean accuracy of 0.9160 and other metrics can be observed in Table~\ref{tab:model_comparison}. The very low standard deviation of 0.0051 on the accuracy metric indicates that the model has stable performance.
+For the classification trees 10-fold cross validation was performed with SMOTE only applied to the training folds. The maximum accuracy of all runs was 0.9309 and the minimum was 0.9233. The mean accuracy of 0.9276 and other metrics can be observed in Table~\ref{tab:model_comparison}. The very low standard deviation of 0.0023 on the accuracy metric indicates that the model has stable performance. While achieving higher overall accuracy than kNN, the classification tree model shows a lower one-vs-rest ROC-AUC score of 0.9562, suggesting slightly reduced discriminatory power when distinguishing between individual classes and all others. The model demonstrates excellent precision (0.9280), recall (0.9276), and F1-score (0.9278) performance. The superior performance across accuracy, precision, recall, and F1-score metrics suggests better overall classification effectiveness compared to the kNN approach. The consistently low standard deviations across all metrics confirm the model's stability and reliability in multiclass prediction tasks.
 
 \subsection{Learning Curves}
 Figure~\ref{fig:dt-learning} provides a visual illustration of how the classification tree learns the signal in the data as the size of the training set increases. This figure was generated using only 10\% of the data for computational purposes. We observe the upward trend of the validation score and the slight downward trend of the training score. This is indicative of the model improving on its generalisation performance. Considering these trends, the results reported in Table~\ref{tab:model_comparison} make sense. We see how the validation score would eventually increase to approximately 0.9160 as the training set increases in size to the full dataset. The learning curve for the kNN algorithm in Figure~\ref{fig:knn-learning} is similar, however due to the small sample dataset, the training score is near perfect. This will change as more minority classes are included in the larger dataset.
