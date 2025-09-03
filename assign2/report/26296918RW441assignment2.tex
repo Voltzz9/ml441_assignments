@@ -1,4 +1,4 @@
-\documentclass[conference]{IEEEtran}
+\documentclass[10pt, conference]{IEEEtran}
 
 \usepackage{cite}
 \usepackage{amsmath,amssymb,amsfonts}
@@ -272,7 +272,7 @@ The small differences in mean cross-validation scores among the top models indic
 			3 & 0.7955 & 0.0021 & gini, 25, None, 1, 5 \\ \hline
 			4 & 0.7949 & 0.0039 & gini, 25, None, 2, 2 \\ \hline
 			5 & 0.7947 & 0.0026 & gini, 20, None, 1, 10 \\ \hline
-			\multicolumn{4}{p{\linewidth}}{%
+			\multicolumn{4}{p{0.95\linewidth}}{%
 				$^{\mathrm{a}}$Parameter order: criterion, max\_depth, max\_features, min\_samples\_leaf, min\_samples\_split.%
 			} 
 		\end{tabular}
@@ -313,18 +313,57 @@ For each fold in the 10-fold cross-validation, the SMOTE and Tomek techniques we
 \end{table}
 
 \subsubsection{Classification Trees}
+For the classification trees 10-fold cross validation was performed with SMOTE only applied to the training folds. The maximum accuracy of all runs was 0.9202 and the minimum was 0.9125. The mean accuracy of 0.9160 and other metrics can be observed in Table~\ref{tab:model_comparison}. The very low standard deviation of 0.0051 on the accuracy metric indicates that the model has stable performance.
 
+\subsection{Learning Curves}
+Figure~\ref{fig:dt-learning} provides a visual illustration of how the classification tree learns the signal in the data as the size of the training set increases. This figure was generated using only 10\% of the data for computational purposes. We observe the upward trend of the validation score and the slight downward trend of the training score. This is indicative of the model improving on its generalisation performance. Considering these trends, the results reported in Table~\ref{tab:model_comparison} make sense. We see how the validation score would eventually increase to approximately 0.9160 as the training set increases in size to the full dataset. The learning curve for the kNN algorithm in Figure~\ref{fig:knn-learning} is similar, however due to the small sample dataset, the training score is near perfect. This will change as more minority classes are included in the larger dataset.
 
+% learning curves
+\begin{figure}[htbp]
+	\centering
+	\includegraphics[width=0.5\textwidth]{../plots/knn_learning_curve.pdf}
+	\caption{The learning curve of the kNN algorithm.}
+	\label{fig:knn-learning}
+\end{figure}
 
-
-TODO include learning curves
+\begin{figure}[htbp]
+	\centering
+	\includegraphics[width=0.5\textwidth]{../plots/dt_learning_curve.pdf}
+	\caption{The learning curve of the classification trees algorithm.}
+	\label{fig:dt-learning}
+\end{figure}
 
 
 \subsection{Computational Analysis}
 
 \subsection{Statistical Significance Testing}
+The Mann–Whitney U test \cite{mann1947test} was performed using the 10 cross validation scores previously described. This resulted in a p-value of 0.00018 which is very small, therefore indicating there is strong evidence to reject the null hypothesis that the classification trees and the kNN scores come from the same distribution.
 
-\subsection{Feature Importance Analysis}
+\subsection{Feature Importance}
+The most useful features for reducing the impurity of the nodes in the classification tree algorithm are seen in Table~\ref{tab:feature_importance}. The feature \texttt{Elevation} contributes the most to the reducing the Gini impurity. Note that the absolute magnitude of these feature importance values have no intrinsic meaning, since they are normalised to sum to one. Interpreting the relative magnitude of the \texttt{Elevation} feature indicates that it contributes roughly three times as much as the second most important feature, \texttt{Horizontal\_Distance\_To\_Roadways}. A shortfall of this table is since the many soil type features are encoded with dummy variables, they are not individually as informative on their own, but collectively may contribute a even larger amount to the reduction of impurity. 
+
+\begin{table}[!th]
+	\caption{Top 10 Feature Importances from Decision Tree Classifier}
+	\label{tab:feature_importance}
+	\centering
+	\begin{tabular}{|c|c|}
+		\hline
+		\textbf{Feature} & \textbf{Importance} \\
+		\hline
+		\texttt{Elevation} & 0.3463 \\
+		\texttt{Horizontal\_Distance\_To\_Roadways} & 0.1246 \\
+		\texttt{Horizontal\_Distance\_To\_Fire\_Points} & 0.1074 \\
+		\texttt{Horizontal\_Distance\_To\_Hydrology} & 0.0607 \\
+		\texttt{Vertical\_Distance\_To\_Hydrology} & 0.0314 \\
+		\texttt{Soil\_Type3} & 0.0289 \\
+		\texttt{Wilderness\_Area3} & 0.0277 \\
+		\texttt{Hillshade\_9am} & 0.0248 \\
+		\texttt{Hillshade\_Noon} & 0.0243 \\
+		\texttt{Wilderness\_Area1} & 0.0190 \\
+		\hline
+	\end{tabular}
+\end{table}
+
 
 
 \section{Conclusion}
