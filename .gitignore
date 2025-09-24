@@ -13,3 +13,5 @@
 assign1/badDataSet.csv
 
 .github
+
+__pycache__
