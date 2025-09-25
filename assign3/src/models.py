@@ -8,7 +8,7 @@ class IrisNet(nn.Module):
         super(IrisNet, self).__init__()
         self.hidden = nn.Linear(input_size, hidden_size)
         self.output = nn.Linear(hidden_size, output_size)
-        self.relu = nn.ReLU()
+        self.relu = nn.Sigmoid()
         self.softmax = nn.Softmax(dim=1)
         
     def forward(self, x):
