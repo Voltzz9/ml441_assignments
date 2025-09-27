@@ -391,6 +391,9 @@ class ActiveLearningEvaluator(ModelEvaluator):
         
         self.metrics_tracker.reset()
         self.training_set_reductions = {25: [], 100: [], 200: [], 300: [], 500: [], 1000: []}
+        self.final_training_set_sizes = []
+        self.original_training_set_sizes = []
+        self.training_set_sizes_by_epoch = {epoch: [] for epoch in [25, 100, 200, 300, 500, 1000]}
         
         # Convert one-hot to class indices for stratification
         y_indices = torch.argmax(y, dim=1)
@@ -432,19 +435,54 @@ class ActiveLearningEvaluator(ModelEvaluator):
                 val_metrics=trial_results.get('val_metrics')
             )
             
-            # Track training set reductions
-            for epoch_check in self.training_set_reductions.keys():
-                if epoch_check in trial_results['training_set_reductions']:
-                    self.training_set_reductions[epoch_check].append(
-                        trial_results['training_set_reductions'][epoch_check]
-                    )
+            # Track training set size information
+            self.final_training_set_sizes.append(trial_results.get('final_training_set_size', 0))
+            self.original_training_set_sizes.append(trial_results.get('original_training_set_size', 0))
+            
+            # Track training set sizes at specific epochs
+            training_set_sizes_at_epochs = trial_results.get('training_set_sizes_at_epochs', {})
+            for epoch in self.training_set_sizes_by_epoch.keys():
+                if epoch in training_set_sizes_at_epochs:
+                    self.training_set_sizes_by_epoch[epoch].append(training_set_sizes_at_epochs[epoch])
+            
+            # Track training set reductions (for backward compatibility)
+            reduction_data = trial_results.get('training_set_reductions', {})
+            if 'final_reduction_percentage' in reduction_data:
+                # For now, store the final reduction at all epochs (will be updated with proper epoch tracking)
+                final_reduction = reduction_data['final_reduction_percentage']
+                for epoch_check in self.training_set_reductions.keys():
+                    self.training_set_reductions[epoch_check].append(final_reduction)
         
         # Compute comprehensive statistics
         results = self.metrics_tracker.compute_statistics()
         results['learning_type'] = f'active_{strategy}'
         results['best_params'] = best_params
         
-        # Add training set reduction statistics
+        # Add training set size statistics
+        if self.final_training_set_sizes:
+            results['final_training_set_size_mean'] = np.mean(self.final_training_set_sizes)
+            results['final_training_set_size_std'] = np.std(self.final_training_set_sizes)
+            results['original_training_set_size_mean'] = np.mean(self.original_training_set_sizes)
+            
+            # Calculate reduction percentages
+            reductions = [(orig - final) / orig * 100 for orig, final in 
+                         zip(self.original_training_set_sizes, self.final_training_set_sizes)]
+            results['training_set_reduction_mean'] = np.mean(reductions)
+            results['training_set_reduction_std'] = np.std(reductions)
+        
+        # Add training set sizes at specific epochs
+        training_set_size_stats = {}
+        for epoch, sizes in self.training_set_sizes_by_epoch.items():
+            if sizes:
+                training_set_size_stats[f'size_at_{epoch}_epochs'] = {
+                    'mean': np.mean(sizes),
+                    'std': np.std(sizes),
+                    'min': np.min(sizes),
+                    'max': np.max(sizes)
+                }
+        results['training_set_sizes_by_epoch'] = training_set_size_stats
+        
+        # Add training set reduction statistics (backward compatibility)
         reduction_stats = {}
         for epoch, reductions in self.training_set_reductions.items():
             if reductions:
@@ -515,7 +553,10 @@ class ActiveLearningEvaluator(ModelEvaluator):
             'losses': final_losses,
             'epochs_converged': epochs_converged,
             'num_presentations': num_presentations,
-            'training_set_reductions': final_reduction_data
+            'training_set_reductions': final_reduction_data,
+            'final_training_set_size': final_reduction_data.get('final_labeled_size', len(X_temp)),
+            'original_training_set_size': final_reduction_data.get('original_training_size', len(X_temp)),
+            'training_set_sizes_at_epochs': final_reduction_data.get('training_set_sizes_at_epochs', {})
         }
     
     def _run_active_simple_trial(self, X: torch.Tensor, y: torch.Tensor, y_indices: torch.Tensor,
@@ -541,7 +582,10 @@ class ActiveLearningEvaluator(ModelEvaluator):
             'losses': losses,
             'epochs_converged': epochs_converged,
             'num_presentations': num_presentations,
-            'training_set_reductions': reduction_data
+            'training_set_reductions': reduction_data,
+            'final_training_set_size': reduction_data.get('final_labeled_size', len(X_train)),
+            'original_training_set_size': reduction_data.get('original_training_size', len(X_train)),
+            'training_set_sizes_at_epochs': reduction_data.get('training_set_sizes_at_epochs', {})
         }
     
     def _train_active_model(self, X_train: torch.Tensor, y_train_idx: torch.Tensor,
@@ -852,6 +896,10 @@ class ActiveLearningEvaluator(ModelEvaluator):
         pool_sizes = []
         labeled_sizes = []
         
+        # Track training set sizes at specific epochs for comparison
+        epoch_checkpoints = [25, 100, 200, 300, 500, 1000]
+        training_set_sizes_at_epochs = {}
+        
         # Pool-Based Active Learning Algorithm
         budget_remaining = total_budget
         query_interval = max(1, total_budget // 50)  # Make ~50 queries total
@@ -880,6 +928,10 @@ class ActiveLearningEvaluator(ModelEvaluator):
                 # Track pool statistics
                 pool_sizes.append(len(U_X))
                 labeled_sizes.append(len(L_X))
+                
+                # Track training set size at specific epoch checkpoints
+                if total_epochs_used in epoch_checkpoints:
+                    training_set_sizes_at_epochs[total_epochs_used] = len(L_X)
             
             # If no more unlabeled data or budget exhausted, break
             if len(U_X) == 0 or budget_remaining <= 0:
@@ -976,9 +1028,17 @@ class ActiveLearningEvaluator(ModelEvaluator):
             'pool_based_queries': query_iteration,
             'initial_labeled_size': initial_labeled_size,
             'final_labeled_size': len(L_X),
+            'original_training_size': len(X_train),
             'total_budget_used': total_budget - budget_remaining,
             'avg_pool_size': np.mean(pool_sizes) if pool_sizes else 0,
-            'avg_labeled_size': np.mean(labeled_sizes) if labeled_sizes else initial_labeled_size
+            'avg_labeled_size': np.mean(labeled_sizes) if labeled_sizes else initial_labeled_size,
+            'training_set_sizes_at_epochs': training_set_sizes_at_epochs,
+            'final_reduction_percentage': ((len(X_train) - len(L_X)) / len(X_train)) * 100,
+            'query_history': {
+                'pool_sizes': pool_sizes,
+                'labeled_sizes': labeled_sizes,
+                'total_epochs': total_epochs_used
+            }
         }
         
         # Find convergence epoch
