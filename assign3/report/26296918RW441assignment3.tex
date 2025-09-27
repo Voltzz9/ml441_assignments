@@ -39,17 +39,123 @@ TODO
 \section{Background}
 %intro
 
-\subsection{Passive learning}
+\subsection{Passive Learning}
+% - Traditional supervised learning paradigm
+% - Stochastic Gradient Descent algorithm
+% - Random sampling of training data
+% - Advantages and limitations
+% - Mathematical formulation of SGD updates
 
-\subsection{Output sensitivity analysis}
+\subsection{Active Learning Paradigm}
+% - Core concepts and motivation
+% - Query strategy framework
+% - Pool-based vs stream-based vs membership query synthesis
+% - Theoretical advantages over passive learning
 
-\subsection{Uncertainty sampling}
+\subsection{Output Sensitivity Analysis}
+% - Mathematical foundation of sensitivity analysis
+% - How gradients indicate information content
+% - Instance selection based on network sensitivity
+% - Algorithm description and theoretical justification
+% - Reference to SASLA.pdf concepts
+
+\subsection{Uncertainty Sampling}
+% - Uncertainty measures in classification vs regression
+% - Entropy-based uncertainty for classification
+% - Variance-based uncertainty for function approximation
+% - Algorithm description and theoretical foundation
+% - Reference to ALUS.pdf concepts
+
+
 
 \section{Implementation}
 
+\subsection{Neural Network Architecture}
+% - Single hidden layer specification
+% - Hidden unit determination process (overestimate strategy)
+% - Activation function selection and justification
+% - Cost function selection
+% - Regularisation
+
+\subsection{Active Learning Algorithms}
+% - Detailed implementation of output sensitivity analysis
+% - Detailed implementation of uncertainty sampling
+% - Query selection mechanisms
+% - Batch size considerations for active learning
+
+\subsection{Software and Hardware Specifications}
+% - Programming language and libraries used
+% - Computational resources
+% - Code repository reference (as required)
+
+
+
 \section{Emperical Process}
+\subsection{Dataset Selection and Preprocessing}
+% - Description of at least 3 classification problems
+% - Description of at least 3 function approximation problems  
+% - Varying complexity justification
+% - Data preprocessing steps with motivations
+% - Train/validation/test splits
+
+\subsection{Performance Criteria}
+% - Classification metrics: accuracy, precision, recall, F1-score
+% - Function approximation metrics: MSE, MAE, R²
+% - Learning curve analysis
+% - Sample efficiency measures
+% - Statistical significance testing approach
+
+\subsection{Experimental Design}
+% - Cross-validation strategy
+% - Multiple runs for statistical reliability
+% - Control parameter optimization process
+% - Hyperparameter tuning methodology
+% - Fair comparison ensuring protocols
+
+\subsection{Statistical Analysis Framework}
+% - Hypothesis testing approach
+% - Significance levels
+% - Multiple comparison corrections
+% - Effect size measurements
 
 \section{Results \& Discussion}
+% (50 marks - largest section, most critical)
+\subsection{Dataset Characteristics}
+% - Detailed description of each dataset
+% - Complexity analysis and classification difficulty
+% - Baseline performance metrics
+
+\subsection{Hyperparameter Optimization Results}
+% - Optimal hidden unit numbers for each problem
+% - Optimal penalty coefficients
+% - Control parameter values with justifications
+% - Convergence analysis
+
+\subsection{Classification Problem Results}
+% - Performance comparison across all three approaches
+% - Learning curves showing sample efficiency
+% - Statistical significance of differences
+% - Problem-specific performance analysis
+% - Tables and figures with proper captions
+
+\subsection{Function Approximation Results}
+% - Detailed results for each regression problem
+% - Comparison of convergence rates
+% - Sample efficiency analysis
+% - Performance variance across runs
+
+\subsection{Comparative Analysis}
+% - Overall ranking of approaches
+% - Problem-dependent performance patterns
+% - Sample efficiency comparison
+% - Computational cost analysis
+% - Advantages and disadvantages of each approach
+
+\subsection{Discussion of Findings}
+% - Interpretation of results in context of theory
+% - Explanation of why certain methods performed better
+% - Limitations of the study
+% - Practical implications for real-world applications
 
 \section{Conclusions}
 TODO
