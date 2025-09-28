@@ -1,0 +1,22 @@
+ENSEMBLE UNCERTAINTY SAMPLING RESULTS SUMMARY
+============================================================
+Saved at: 2025-09-28 13:26:51
+Dataset: Iris
+Method: Ensemble Uncertainty Sampling Active Learning
+Number of trials: 50
+Cross-validation: 5-fold
+Ensemble size: 3 models
+
+PERFORMANCE METRICS:
+--------------------
+Training Accuracy: 0.9780 ± 0.0084
+Test Accuracy: 0.9660 ± 0.0302
+Best Test Accuracy: 1.0000
+Convergence Rate: 74.0%
+Avg Pattern Presentations: 1485.6
+
+TRAINING SET EFFICIENCY:
+-------------------------
+Original Training Set Size: 120
+Final Training Set Size: 112.0 ± 0.0
+Training Set Reduction: 6.7% ± 0.0%
