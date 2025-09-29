@@ -291,14 +291,21 @@ class ModelEvaluator:
                     params: Dict, epochs: int) -> Tuple:
         """Train a single model and return results."""
         
+        # Convert y_train_idx to one-hot for MSE loss (matching active learning approach)
+        y_train_onehot = torch.zeros(len(y_train_idx), 3)
+        y_train_onehot[range(len(y_train_idx)), y_train_idx] = 1
+        # Scale to [0.1, 0.9] like in active learning
+        y_train_onehot = y_train_onehot * 0.8 + 0.1
+        
         # Create model
         model = IrisNet(
             input_size=4,
             hidden_size=params['hidden_size'],
-            output_size=3
+            output_size=3,
+            use_mse=True
         )
         
-        criterion = nn.CrossEntropyLoss()
+        criterion = nn.MSELoss()
         optimizer = optim.SGD(
             model.parameters(),
             lr=params['learning_rate'],
@@ -312,7 +319,7 @@ class ModelEvaluator:
             model.train()
             optimizer.zero_grad()
             outputs = model(X_train)
-            loss = criterion(outputs, y_train_idx)
+            loss = criterion(outputs, y_train_onehot)
             loss.backward()
             optimizer.step()
             losses.append(loss.item())
@@ -638,14 +645,21 @@ class ActiveLearningEvaluator(ModelEvaluator):
         - Uses α = 0.9 as selection constant (conservative approach)
         """
         
+        # Convert y_train_idx to one-hot for MSE loss (matching other approaches)
+        y_train_onehot = torch.zeros(len(y_train_idx), 3)
+        y_train_onehot[range(len(y_train_idx)), y_train_idx] = 1
+        # Scale to [0.1, 0.9] like in other active learning methods
+        y_train_onehot = y_train_onehot * 0.8 + 0.1
+        
         # Create model
         model = IrisNet(
             input_size=4,
             hidden_size=params['hidden_size'],
-            output_size=3
+            output_size=3,
+            use_mse=True
         )
         
-        criterion = nn.CrossEntropyLoss()
+        criterion = nn.MSELoss()
         optimizer = optim.SGD(
             model.parameters(),
             lr=params['learning_rate'],
@@ -656,6 +670,7 @@ class ActiveLearningEvaluator(ModelEvaluator):
         # Initialize training data (make copies to avoid modifying originals)
         current_X_train = X_train.clone()
         current_y_train_idx = y_train_idx.clone()
+        current_y_train_onehot = y_train_onehot.clone()
         original_train_size = len(X_train)
         
         # Track training set reductions at specific epochs
@@ -672,7 +687,7 @@ class ActiveLearningEvaluator(ModelEvaluator):
             
             # Forward pass
             outputs = model(current_X_train)
-            loss = criterion(outputs, current_y_train_idx)
+            loss = criterion(outputs, current_y_train_onehot)
             
             # Backward pass
             loss.backward()
@@ -685,6 +700,10 @@ class ActiveLearningEvaluator(ModelEvaluator):
                 current_X_train, current_y_train_idx = self._apply_sasla_selection(
                     model, current_X_train, current_y_train_idx, alpha
                 )
+                # Update one-hot encoded labels to match selected patterns
+                current_y_train_onehot = torch.zeros(len(current_y_train_idx), 3)
+                current_y_train_onehot[range(len(current_y_train_idx)), current_y_train_idx] = 1
+                current_y_train_onehot = current_y_train_onehot * 0.8 + 0.1
             
             # Record training set size at checkpoints
             if epoch + 1 in epoch_checkpoints:
