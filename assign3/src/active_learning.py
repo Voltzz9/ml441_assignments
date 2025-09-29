@@ -1028,7 +1028,7 @@ class ActiveLearningEvaluator(ModelEvaluator):
         """
         Apply SASLA pattern selection based on output sensitivity analysis.
         
-        This implements the true SASLA algorithm from the paper:
+        This implements the true SASLA algorithm from the paper using vectorized operations:
         1. Compute exact output sensitivity using derivatives (Equation 4)
         2. Calculate pattern informativeness (Equations 1-2) 
         3. Select patterns with informativeness > (1-α) * average_informativeness
@@ -1056,103 +1056,79 @@ class ActiveLearningEvaluator(ModelEvaluator):
         w_weights = params[2]  # Shape: [output_size, hidden_size] 
         w_bias = params[3]     # Shape: [output_size]
         
-        # Compute pattern informativeness for each training sample
-        informativeness_scores = []
-        
-        for i in range(len(X_train)):
-            pattern = X_train[i:i+1]  # Shape: [1, input_size]
-            target_class = y_train_idx[i].item()
-            # Forward pass to get activations
-            with torch.no_grad():
-                # Hidden layer activations (before activation function)
-                hidden_pre = torch.matmul(pattern, v_weights.T) + v_bias  # [1, hidden_size]
-                # Apply activation function (assuming sigmoid for SASLA)
-                hidden_post = torch.sigmoid(hidden_pre)  # y_j in paper
-                
-                # Output layer activations (before softmax)
-                output_pre = torch.matmul(hidden_post, w_weights.T) + w_bias  # [1, output_size]
-                # Apply softmax to get output probabilities
-                output_probs = torch.sigmoid(output_pre)  # o_k in paper
+        # VECTORIZED COMPUTATION FOR ALL PATTERNS AT ONCE
+        with torch.no_grad():
+            # Forward pass for all patterns simultaneously
+            # X_train shape: [n_samples, input_size]
+            hidden_pre = torch.matmul(X_train, v_weights.T) + v_bias  # [n_samples, hidden_size]
+            hidden_post = torch.sigmoid(hidden_pre)  # y_j in paper, shape: [n_samples, hidden_size]
             
-            # Compute output sensitivity for target class (Equation 4)
-            # S_oz(k,i) = (1 - o_k) * o_k * Σ_j [w_kj * (1 - y_j) * y_j * v_ji]
+            output_pre = torch.matmul(hidden_post, w_weights.T) + w_bias  # [n_samples, output_size]
+            output_probs = torch.sigmoid(output_pre)  # o_k in paper, shape: [n_samples, output_size]
             
-            target_output_prob = output_probs[0, target_class]  # o_k for target class
+            n_samples, n_hidden = hidden_post.shape
+            n_outputs = output_probs.shape[1]
             
-            # Compute the sum over hidden units
-            sensitivity_sum = 0.0
-            for j in range(hidden_post.shape[1]):  # For each hidden unit
-                y_j = hidden_post[0, j].item()  # Hidden activation
-                w_kj = w_weights[target_class, j].item()  # Weight from hidden j to output k
-                v_ji = v_weights[j, :].dot(pattern[0]).item()  # Weighted input to hidden j
-                
-                sensitivity_sum += w_kj * (1 - y_j) * y_j * v_ji
+            # Compute weighted inputs v_ji for all patterns and hidden units
+            # v_ji = Σ(v_weights[j, :] * X_train[i, :]) for each sample i and hidden unit j
+            v_ji = torch.matmul(X_train, v_weights.T)  # [n_samples, n_hidden]
             
-            # Complete sensitivity calculation
-            output_sensitivity = (1 - target_output_prob) * target_output_prob * sensitivity_sum
+            # Compute sensitivity terms for all combinations
+            # For each sample i, output k, hidden unit j:
+            # term_ijk = w_kj * (1 - y_j) * y_j * v_ji
             
-            # Compute pattern informativeness (Equations 1-2)
-            # First compute sum-norm: sum of absolute sensitivities for all outputs
-            sum_norm = 0.0
-            for k in range(output_probs.shape[1]):  # For each output class
-                o_k = output_probs[0, k].item()
-                class_sensitivity_sum = 0.0
-                
-                for j in range(hidden_post.shape[1]):
-                    y_j = hidden_post[0, j].item()
-                    w_kj = w_weights[k, j].item()
-                    v_ji = v_weights[j, :].dot(pattern[0]).item()
-                    class_sensitivity_sum += w_kj * (1 - y_j) * y_j * v_ji
-                
-                class_sensitivity = (1 - o_k) * o_k * class_sensitivity_sum
-                sum_norm += abs(class_sensitivity)
+            # Expand tensors for broadcasting
+            # hidden_post: [n_samples, n_hidden] -> [n_samples, 1, n_hidden]
+            # w_weights: [n_outputs, n_hidden] -> [1, n_outputs, n_hidden]
+            # v_ji: [n_samples, n_hidden] -> [n_samples, 1, n_hidden]
+            
+            hidden_expanded = hidden_post.unsqueeze(1)  # [n_samples, 1, n_hidden]
+            w_expanded = w_weights.unsqueeze(0)         # [1, n_outputs, n_hidden]
+            v_ji_expanded = v_ji.unsqueeze(1)           # [n_samples, 1, n_hidden]
+            
+            # Compute sensitivity terms for all (sample, output, hidden) combinations
+            # Shape: [n_samples, n_outputs, n_hidden]
+            sensitivity_terms = w_expanded * (1 - hidden_expanded) * hidden_expanded * v_ji_expanded
+            
+            # Sum over hidden units for each (sample, output) pair
+            # Shape: [n_samples, n_outputs]
+            sensitivity_sums = torch.sum(sensitivity_terms, dim=2)
+            
+            # Compute complete sensitivity: (1 - o_k) * o_k * sensitivity_sum
+            # output_probs shape: [n_samples, n_outputs]
+            all_sensitivities = (1 - output_probs) * output_probs * sensitivity_sums
+            
+            # Compute informativeness for each pattern
+            # Sum-norm: sum of absolute sensitivities across all outputs
+            sum_norms = torch.sum(torch.abs(all_sensitivities), dim=1)  # [n_samples]
             
             # Max-norm: maximum absolute sensitivity across outputs
-            max_sensitivity = abs(output_sensitivity.item())
-            for k in range(output_probs.shape[1]):
-                if k != target_class:
-                    o_k = output_probs[0, k].item()
-                    class_sensitivity_sum = 0.0
-                    
-                    for j in range(hidden_post.shape[1]):
-                        y_j = hidden_post[0, j].item()
-                        w_kj = w_weights[k, j].item()
-                        v_ji = v_weights[j, :].dot(pattern[0]).item()
-                        class_sensitivity_sum += w_kj * (1 - y_j) * y_j * v_ji
-                    
-                    class_sensitivity = (1 - o_k) * o_k * class_sensitivity_sum
-                    max_sensitivity = max(max_sensitivity, abs(class_sensitivity))
+            max_norms = torch.max(torch.abs(all_sensitivities), dim=1)[0]  # [n_samples]
             
-            # Pattern informativeness (Equation 2): max-norm of sum-norm
-            informativeness = max(sum_norm, max_sensitivity)
-            informativeness_scores.append(informativeness)
-        
-        # Convert to numpy for easier manipulation
-        informativeness_scores = np.array(informativeness_scores)
+            # Pattern informativeness (Equation 2): max of sum-norm and max-norm
+            informativeness_scores = torch.maximum(sum_norms, max_norms)  # [n_samples]
         
         # Calculate selection threshold: (1-α) * average_informativeness
-        avg_informativeness = np.mean(informativeness_scores)
+        avg_informativeness = torch.mean(informativeness_scores)
         selection_threshold = (1 - alpha) * avg_informativeness
         
         # Select patterns with informativeness above threshold
         selected_indices = informativeness_scores >= selection_threshold
-
         
         # Ensure we keep at least one sample per class
         for class_label in torch.unique(y_train_idx):
             class_mask = (y_train_idx == class_label)
-            class_selected = selected_indices & class_mask.numpy()
+            class_selected = selected_indices & class_mask
             
-            if not np.any(class_selected):
+            if not torch.any(class_selected):
                 # If no samples selected for this class, keep the most informative one
-                class_informativeness = informativeness_scores[class_mask.numpy()]
-                best_idx = np.argmax(class_informativeness)
+                class_informativeness = informativeness_scores[class_mask]
+                best_idx = torch.argmax(class_informativeness)
                 class_indices = torch.where(class_mask)[0]
                 selected_indices[class_indices[best_idx]] = True
         
         # Return selected patterns
-        selected_tensor = torch.tensor(selected_indices, dtype=torch.bool)
-        return X_train[selected_tensor], y_train_idx[selected_tensor]
+        return X_train[selected_indices], y_train_idx[selected_indices]
     
     def _train_uncertainty_sampling_model(self, X_train: torch.Tensor, y_train_idx: torch.Tensor,
                                          X_test: torch.Tensor, y_test_idx: torch.Tensor,
