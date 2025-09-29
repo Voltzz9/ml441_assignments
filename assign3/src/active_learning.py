@@ -391,12 +391,35 @@ class ModelEvaluator:
 
 
 class ActiveLearningEvaluator(ModelEvaluator):
-    """Extended evaluator for active learning strategies."""
+    """
+    Extended evaluator for active learning strategies.
+    
+    Includes specialized plotting methods for analyzing active learning performance,
+    particularly F1 score progression as the number of labeled instances increases
+    during uncertainty sampling.
+    
+    Example usage for F1 vs instances plotting:
+    
+    ```python
+    # Run uncertainty sampling evaluation
+    evaluator = ActiveLearningEvaluator()
+    results = evaluator.evaluate_active_learning(
+        X, y, best_params, 'uncertainty_sampling', n_trials=10
+    )
+    
+    # Plot F1 score vs number of instances (uses all trials)
+    evaluator.plot_f1_vs_instances(results, 
+        title="F1 Score vs Labeled Instances - Uncertainty Sampling",
+        save_path="f1_vs_instances.png"
+    )
+    ```
+    """
     
     def __init__(self, convergence_threshold: float = 0.95):
         super().__init__(convergence_threshold)
         # Add additional tracking for active learning metrics
         self.training_set_reductions = {}  # Store reduction percentages at different epochs
+        self.f1_curves_data = []  # Store F1 vs instances data from all trials
         
     def evaluate_active_learning(self, X: torch.Tensor, y: torch.Tensor,
                                 best_params: Dict, strategy: str,
@@ -420,6 +443,7 @@ class ActiveLearningEvaluator(ModelEvaluator):
         self.final_training_set_sizes = []
         self.original_training_set_sizes = []
         self.training_set_sizes_by_epoch = {epoch: [] for epoch in [25, 100, 200, 300, 500, 1000]}
+        self.f1_curves_data = []  # Reset F1 curve data
         
         # Convert one-hot to class indices for stratification
         y_indices = torch.argmax(y, dim=1)
@@ -465,6 +489,12 @@ class ActiveLearningEvaluator(ModelEvaluator):
             # Track training set size information
             self.final_training_set_sizes.append(trial_results.get('final_training_set_size', 0))
             self.original_training_set_sizes.append(trial_results.get('original_training_set_size', 0))
+            
+            # Store F1 curve data for uncertainty sampling
+            if strategy == 'uncertainty_sampling':
+                f1_curve_data = trial_results.get('training_set_reductions', {}).get('f1_scores_vs_instances', [])
+                if f1_curve_data:
+                    self.f1_curves_data.append(f1_curve_data)
             
             # Track training set sizes at specific epochs
             training_set_sizes_at_epochs = trial_results.get('training_set_sizes_at_epochs', {})
@@ -522,6 +552,229 @@ class ActiveLearningEvaluator(ModelEvaluator):
         results['training_set_reductions'] = reduction_stats
         
         return results
+    
+    def plot_f1_vs_instances(self, results: Dict, title: str = "F1 Score vs Number of Labeled Instances", 
+                            figsize: Tuple[int, int] = (10, 6), 
+                            save_path: Optional[str] = None):
+        """
+        Plot F1 score vs number of labeled instances for uncertainty sampling.
+        
+        Args:
+            results: Results dictionary from evaluate_active_learning() with uncertainty_sampling strategy
+            title: Title for the plot
+            figsize: Figure size tuple (width, height)
+            save_path: Optional path to save the plot
+        """
+        try:
+            import matplotlib.pyplot as plt
+        except ImportError:
+            print("matplotlib not available. Cannot plot F1 vs instances.")
+            return
+        
+        # Check if this is uncertainty sampling results
+        if 'active_uncertainty_sampling' not in results.get('learning_type', ''):
+            print("This plotting method is specifically for uncertainty sampling results.")
+            return
+        
+        # Check if we have stored F1 curves data
+        if not self.f1_curves_data:
+            print("No F1 vs instances data available. Make sure you ran uncertainty_sampling evaluation.")
+            return
+        
+        # Use the multi-trial plotting method with stored data
+        trial_results_list = []
+        for f1_curve in self.f1_curves_data:
+            trial_result = {'training_set_reductions': {'f1_scores_vs_instances': f1_curve}}
+            trial_results_list.append(trial_result)
+        
+        self.plot_f1_vs_instances_multi_trial(
+            trial_results_list, title=title, figsize=figsize, 
+            save_path=save_path, show_individual=True, confidence_bands=True
+        )
+        
+    def plot_f1_vs_instances_from_trial(self, trial_results: Dict, 
+                                       title: str = "F1 Score vs Number of Labeled Instances",
+                                       figsize: Tuple[int, int] = (10, 6),
+                                       save_path: Optional[str] = None):
+        """
+        Plot F1 score vs number of labeled instances from a single trial.
+        
+        Args:
+            trial_results: Results from a single uncertainty sampling trial
+            title: Title for the plot
+            figsize: Figure size tuple (width, height)
+            save_path: Optional path to save the plot
+        """
+        try:
+            import matplotlib.pyplot as plt
+        except ImportError:
+            print("matplotlib not available. Cannot plot F1 vs instances.")
+            return
+        
+        # Extract F1 data from trial results
+        f1_data = trial_results.get('training_set_reductions', {}).get('f1_scores_vs_instances', [])
+        
+        if not f1_data:
+            print("No F1 vs instances data found in trial results.")
+            print("Make sure you're using uncertainty_sampling strategy and the data was collected.")
+            return
+        
+        # Extract instances and F1 scores
+        instances = [point[0] for point in f1_data]
+        f1_scores = [point[1] for point in f1_data]
+        
+        if len(instances) == 0:
+            print("No F1 data points found.")
+            return
+        
+        # Create the plot
+        fig, ax = plt.subplots(figsize=figsize)
+        
+        ax.plot(instances, f1_scores, 'b-o', linewidth=2, markersize=6, 
+                label='F1 Score', markerfacecolor='white', markeredgecolor='blue')
+        
+        ax.set_xlabel('Number of Labeled Instances')
+        ax.set_ylabel('F1 Score (Macro Average)')
+        ax.set_title(title)
+        ax.grid(True, alpha=0.3)
+        ax.legend()
+        
+        # Set y-axis to show full range from 0 to 1
+        ax.set_ylim(0, 1)
+        
+        # Add some statistics as text
+        max_f1 = max(f1_scores)
+        final_f1 = f1_scores[-1]
+        initial_instances = instances[0]
+        final_instances = instances[-1]
+        
+        textstr = f'Initial: {initial_instances} instances, F1={f1_scores[0]:.3f}\n'
+        textstr += f'Final: {final_instances} instances, F1={final_f1:.3f}\n'
+        textstr += f'Max F1: {max_f1:.3f}\n'
+        textstr += f'Improvement: {final_f1 - f1_scores[0]:.3f}'
+        
+        ax.text(0.02, 0.98, textstr, transform=ax.transAxes, fontsize=10,
+                verticalalignment='top', bbox=dict(boxstyle='round', facecolor='wheat', alpha=0.8))
+        
+        plt.tight_layout()
+        
+        if save_path:
+            plt.savefig(save_path, dpi=300, bbox_inches='tight')
+            print(f"F1 vs instances plot saved to {save_path}")
+        
+        plt.show()
+    
+    def plot_f1_vs_instances_multi_trial(self, all_trial_results: List[Dict],
+                                        title: str = "F1 Score vs Number of Labeled Instances (Multi-Trial)",
+                                        figsize: Tuple[int, int] = (12, 8),
+                                        save_path: Optional[str] = None,
+                                        show_individual: bool = False,
+                                        confidence_bands: bool = True):
+        """
+        Plot F1 score vs number of labeled instances across multiple trials with confidence bands.
+        
+        Args:
+            all_trial_results: List of results from multiple uncertainty sampling trials
+            title: Title for the plot
+            figsize: Figure size tuple (width, height)
+            save_path: Optional path to save the plot
+            show_individual: Whether to show individual trial curves
+            confidence_bands: Whether to show confidence bands around mean
+        """
+        try:
+            import matplotlib.pyplot as plt
+        except ImportError:
+            print("matplotlib not available. Cannot plot F1 vs instances.")
+            return
+        
+        # Extract F1 data from all trials
+        all_curves = []
+        for trial in all_trial_results:
+            f1_data = trial.get('training_set_reductions', {}).get('f1_scores_vs_instances', [])
+            if f1_data:
+                instances = [point[0] for point in f1_data]
+                f1_scores = [point[1] for point in f1_data]
+                all_curves.append((instances, f1_scores))
+        
+        if not all_curves:
+            print("No F1 vs instances data found in any trial results.")
+            return
+        
+        # Find common instance points (interpolate if necessary)
+        all_instances = sorted(set().union(*[curve[0] for curve in all_curves]))
+        
+        # Interpolate F1 scores for common instance points
+        from scipy.interpolate import interp1d
+        interpolated_curves = []
+        
+        for instances, f1_scores in all_curves:
+            if len(instances) > 1:  # Need at least 2 points for interpolation
+                # Create interpolation function
+                f = interp1d(instances, f1_scores, kind='linear', 
+                            bounds_error=False, fill_value='extrapolate')
+                # Interpolate at common instance points
+                interp_f1 = f(all_instances)
+                interpolated_curves.append(interp_f1)
+        
+        if not interpolated_curves:
+            print("Not enough data points for interpolation.")
+            return
+        
+        # Convert to numpy array for easier statistics
+        curves_array = np.array(interpolated_curves)
+        mean_f1 = np.mean(curves_array, axis=0)
+        std_f1 = np.std(curves_array, axis=0)
+        
+        # Create the plot
+        fig, ax = plt.subplots(figsize=figsize)
+        
+        # Show individual trials if requested
+        if show_individual:
+            for i, f1_curve in enumerate(interpolated_curves):
+                ax.plot(all_instances, f1_curve, 'lightgray', alpha=0.5, linewidth=1)
+        
+        # Plot mean curve
+        ax.plot(all_instances, mean_f1, 'b-o', linewidth=3, markersize=6,
+                label=f'Mean F1 Score (n={len(interpolated_curves)} trials)',
+                markerfacecolor='white', markeredgecolor='blue')
+        
+        # Add confidence bands
+        if confidence_bands:
+            ax.fill_between(all_instances, mean_f1 - std_f1, mean_f1 + std_f1,
+                           alpha=0.2, color='blue', label='±1 Standard Deviation')
+        
+        ax.set_xlabel('Number of Labeled Instances')
+        ax.set_ylabel('F1 Score (Macro Average)')
+        ax.set_title(title)
+        ax.grid(True, alpha=0.3)
+        ax.legend()
+        
+        # Set y-axis to show full range
+        ax.set_ylim(0, 1)
+        
+        # Add statistics
+        initial_f1 = mean_f1[0]
+        final_f1 = mean_f1[-1]
+        max_f1 = max(mean_f1)
+        initial_instances = all_instances[0]
+        final_instances = all_instances[-1]
+        
+        textstr = f'Trials: {len(interpolated_curves)}\n'
+        textstr += f'Initial: {initial_instances} instances, F1={initial_f1:.3f}±{std_f1[0]:.3f}\n'
+        textstr += f'Final: {final_instances} instances, F1={final_f1:.3f}±{std_f1[-1]:.3f}\n'
+        textstr += f'Max Mean F1: {max_f1:.3f}\n'
+        textstr += f'Mean Improvement: {final_f1 - initial_f1:.3f}'
+        
+        ax.text(0.02, 0.98, textstr, transform=ax.transAxes, fontsize=10,
+                verticalalignment='top', bbox=dict(boxstyle='round', facecolor='wheat', alpha=0.8))
+        
+        plt.tight_layout()
+        
+        if save_path:
+            plt.savefig(save_path, dpi=300, bbox_inches='tight')
+            print(f"Multi-trial F1 vs instances plot saved to {save_path}")
+        
+        plt.show()
     
     def _run_active_cv_trial(self, X: torch.Tensor, y: torch.Tensor, y_indices: torch.Tensor,
                             params: Dict, strategy: str, cv_folds: int, epochs: int, 
@@ -984,6 +1237,9 @@ class ActiveLearningEvaluator(ModelEvaluator):
         pool_sizes = []
         labeled_sizes = []
         
+        # Track F1 scores vs number of labeled instances for plotting
+        f1_scores_vs_instances = []  # List of (num_instances, f1_score) tuples
+        
         # Track training set sizes at specific epochs for comparison
         epoch_checkpoints = [25, 100, 200, 300, 500, 1000]
         training_set_sizes_at_epochs = {}
@@ -995,6 +1251,15 @@ class ActiveLearningEvaluator(ModelEvaluator):
         
         query_iteration = 0
         total_epochs_used = 0
+        
+        # Evaluate initial F1 score with initial labeled set
+        model.eval()
+        with torch.no_grad():
+            test_outputs = model(X_test)
+            test_pred = torch.argmax(test_outputs, dim=1)
+            from sklearn.metrics import f1_score
+            initial_f1 = f1_score(y_test_idx.numpy(), test_pred.numpy(), average='macro', zero_division=0)
+            f1_scores_vs_instances.append((len(L_X), initial_f1))
         
         while budget_remaining > 0 and len(U_X) > 0 and total_epochs_used < epochs:
             
@@ -1080,6 +1345,16 @@ class ActiveLearningEvaluator(ModelEvaluator):
             budget_remaining -= samples_to_query
             query_iteration += 1
             
+            # Evaluate F1 score on test set after adding new samples
+            model.eval()
+            with torch.no_grad():
+                test_outputs = model(X_test)
+                test_pred = torch.argmax(test_outputs, dim=1)
+                # Compute F1 score
+                from sklearn.metrics import f1_score
+                current_f1 = f1_score(y_test_idx.numpy(), test_pred.numpy(), average='macro', zero_division=0)
+                f1_scores_vs_instances.append((len(L_X), current_f1))
+            
             # Reinitialize optimizer for updated labeled set
             optimizer = optim.SGD(
                 model.parameters(),
@@ -1139,6 +1414,7 @@ class ActiveLearningEvaluator(ModelEvaluator):
             'avg_labeled_size': np.mean(labeled_sizes) if labeled_sizes else initial_labeled_size,
             'training_set_sizes_at_epochs': training_set_sizes_at_epochs,
             'final_reduction_percentage': ((len(X_train) - len(L_X)) / len(X_train)) * 100,
+            'f1_scores_vs_instances': f1_scores_vs_instances,  # Add F1 score tracking
             'query_history': {
                 'pool_sizes': pool_sizes,
                 'labeled_sizes': labeled_sizes,
