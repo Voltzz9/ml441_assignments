@@ -19,6 +19,7 @@ class MetricsTracker:
         self.test_accuracies = []
         self.val_accuracies = []  # For cross-validation
         self.losses_per_trial = []
+        self.val_losses_per_trial = []  # Validation losses per trial
         self.epochs_to_converge = []
         self.pattern_presentations = []
         self.computation_times = []
@@ -45,13 +46,15 @@ class MetricsTracker:
                          epochs_converged: int, num_presentations: int, 
                          computation_time: float, val_acc: Optional[float] = None,
                          train_metrics: Optional[Dict] = None, test_metrics: Optional[Dict] = None,
-                         val_metrics: Optional[Dict] = None):
+                         val_metrics: Optional[Dict] = None, val_losses: Optional[List[float]] = None):
         """Add results from a single trial."""
         self.train_accuracies.append(train_acc)
         self.test_accuracies.append(test_acc)
         if val_acc is not None:
             self.val_accuracies.append(val_acc)
         self.losses_per_trial.append(losses)
+        if val_losses is not None:
+            self.val_losses_per_trial.append(val_losses)
         self.epochs_to_converge.append(epochs_converged)
         self.pattern_presentations.append(num_presentations)
         self.computation_times.append(computation_time)
@@ -201,7 +204,139 @@ class MetricsTracker:
                 'std_epochs_to_converge': None
             })
         
+        # Compute averaged loss curves for plotting
+        if self.losses_per_trial:
+            avg_train_losses, std_train_losses = self._compute_averaged_losses(self.losses_per_trial)
+            stats_dict['avg_train_losses'] = avg_train_losses
+            stats_dict['std_train_losses'] = std_train_losses
+        
+        if self.val_losses_per_trial:
+            avg_val_losses, std_val_losses = self._compute_averaged_losses(self.val_losses_per_trial)
+            stats_dict['avg_val_losses'] = avg_val_losses
+            stats_dict['std_val_losses'] = std_val_losses
+        
         return stats_dict
+    
+    def _compute_averaged_losses(self, losses_per_trial: List[List[float]]) -> Tuple[np.ndarray, np.ndarray]:
+        """
+        Compute averaged loss curves across trials.
+        
+        Args:
+            losses_per_trial: List of loss curves, where each curve is a list of losses per epoch
+            
+        Returns:
+            Tuple of (mean_losses, std_losses) where each is a numpy array of length max_epochs
+        """
+        if not losses_per_trial:
+            return np.array([]), np.array([])
+        
+        # Find the maximum number of epochs across all trials
+        max_epochs = max(len(losses) for losses in losses_per_trial)
+        
+        # Pad shorter trials with their final loss value
+        padded_losses = []
+        for losses in losses_per_trial:
+            if len(losses) < max_epochs:
+                # Pad with the last loss value
+                padded = losses + [losses[-1]] * (max_epochs - len(losses))
+            else:
+                padded = losses[:max_epochs]  # Truncate if longer
+            padded_losses.append(padded)
+        
+        # Convert to numpy array and compute statistics
+        losses_array = np.array(padded_losses)  # Shape: (n_trials, max_epochs)
+        mean_losses = np.mean(losses_array, axis=0)
+        std_losses = np.std(losses_array, axis=0)
+        
+        return mean_losses, std_losses
+    
+    def get_loss_curves(self) -> Dict[str, Tuple[np.ndarray, np.ndarray]]:
+        """
+        Get averaged loss curves for plotting.
+        
+        Returns:
+            Dictionary with keys 'train' and 'val' (if available), each containing
+            a tuple of (mean_losses, std_losses)
+        """
+        curves = {}
+        
+        if self.losses_per_trial:
+            mean_train, std_train = self._compute_averaged_losses(self.losses_per_trial)
+            curves['train'] = (mean_train, std_train)
+        
+        if self.val_losses_per_trial:
+            mean_val, std_val = self._compute_averaged_losses(self.val_losses_per_trial)
+            curves['val'] = (mean_val, std_val)
+        
+        return curves
+    
+    def plot_loss_curves(self, title: str = "Training and Validation Loss", 
+                        figsize: Tuple[int, int] = (10, 6), 
+                        save_path: Optional[str] = None):
+        """
+        Plot training and validation loss curves with error bands.
+        
+        Args:
+            title: Title for the plot
+            figsize: Figure size tuple (width, height)
+            save_path: Optional path to save the plot
+        """
+        try:
+            import matplotlib.pyplot as plt
+        except ImportError:
+            print("matplotlib not available. Cannot plot loss curves.")
+            return
+        
+        curves = self.get_loss_curves()
+        
+        if not curves:
+            print("No loss data available for plotting.")
+            return
+        
+        fig, ax = plt.subplots(figsize=figsize)
+        
+        # Plot training losses
+        if 'train' in curves:
+            mean_train, std_train = curves['train']
+            epochs = np.arange(len(mean_train))
+            ax.plot(epochs, mean_train, label='Training Loss', color='blue', linewidth=2)
+            ax.fill_between(epochs, mean_train - std_train, mean_train + std_train, 
+                           alpha=0.2, color='blue')
+        
+        # Plot validation losses
+        if 'val' in curves:
+            mean_val, std_val = curves['val']
+            epochs = np.arange(len(mean_val))
+            ax.plot(epochs, mean_val, label='Validation Loss', color='red', linewidth=2)
+            ax.fill_between(epochs, mean_val - std_val, mean_val + std_val, 
+                           alpha=0.2, color='red')
+        
+        ax.set_xlabel('Epoch')
+        ax.set_ylabel('Loss')
+        ax.set_title(title)
+        ax.legend()
+        ax.grid(True, alpha=0.3)
+        
+        # Set y-axis to start from 0 if all losses are positive
+        if 'train' in curves and 'val' in curves:
+            min_loss = min(np.min(curves['train'][0]), np.min(curves['val'][0]))
+        elif 'train' in curves:
+            min_loss = np.min(curves['train'][0])
+        elif 'val' in curves:
+            min_loss = np.min(curves['val'][0])
+        else:
+            min_loss = 0
+        
+        if min_loss >= 0:
+            ax.set_ylim(bottom=0)
+        
+        plt.tight_layout()
+        
+        if save_path:
+            plt.savefig(save_path, dpi=300, bbox_inches='tight')
+            print(f"Loss curves saved to {save_path}")
+        
+        plt.show()
     
     def print_comprehensive_report(self):
         """Print a comprehensive report of all metrics."""

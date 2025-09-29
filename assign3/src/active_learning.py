@@ -168,6 +168,7 @@ class ModelEvaluator:
                 test_acc=trial_results['test_acc'],
                 val_acc=trial_results.get('val_acc'),
                 losses=trial_results['losses'],
+                val_losses=trial_results.get('val_losses'),
                 epochs_converged=trial_results['epochs_converged'],
                 num_presentations=trial_results['num_presentations'],
                 computation_time=computation_time,
@@ -213,7 +214,7 @@ class ModelEvaluator:
             y_val_idx = y_temp_idx[val_idx]
             
             # Train model
-            model, losses, train_acc, val_acc, _, train_metrics, val_metrics = self._train_model(
+            model, losses, train_acc, val_acc, _, train_metrics, val_metrics, val_losses = self._train_model(
                 X_train, y_train_idx, X_val, y_val_idx, params, epochs
             )
             
@@ -233,7 +234,7 @@ class ModelEvaluator:
         
         # Final test on holdout set using best parameters
         # Train on all temp data for final test
-        final_model, final_losses, _, _, epochs_converged, _, test_metrics = self._train_model(
+        final_model, final_losses, _, _, epochs_converged, _, test_metrics, final_val_losses = self._train_model(
             X_temp, y_temp_idx, X_test, y_test_idx, params, epochs
         )
         
@@ -252,6 +253,7 @@ class ModelEvaluator:
             'test_acc': test_acc,
             'val_acc': avg_val_acc,
             'losses': final_losses,
+            'val_losses': final_val_losses,
             'epochs_converged': epochs_converged,
             'num_presentations': num_presentations,
             'train_metrics': avg_train_metrics,
@@ -269,7 +271,7 @@ class ModelEvaluator:
         )
         
         # Train model
-        model, losses, train_acc, test_acc, epochs_converged, train_metrics, test_metrics = self._train_model(
+        model, losses, train_acc, test_acc, epochs_converged, train_metrics, test_metrics, val_losses = self._train_model(
             X_train, y_train_idx, X_test, y_test_idx, params, epochs
         )
         
@@ -280,6 +282,7 @@ class ModelEvaluator:
             'train_acc': train_acc,
             'test_acc': test_acc,
             'losses': losses,
+            'val_losses': val_losses,
             'train_metrics': train_metrics,
             'test_metrics': test_metrics,
             'epochs_converged': epochs_converged,
@@ -296,6 +299,12 @@ class ModelEvaluator:
         y_train_onehot[range(len(y_train_idx)), y_train_idx] = 1
         # Scale to [0.1, 0.9] like in active learning
         y_train_onehot = y_train_onehot * 0.8 + 0.1
+        
+        # Convert y_test_idx to one-hot for validation loss calculation
+        y_test_onehot = torch.zeros(len(y_test_idx), 3)
+        y_test_onehot[range(len(y_test_idx)), y_test_idx] = 1
+        # Scale to [0.1, 0.9] like training data
+        y_test_onehot = y_test_onehot * 0.8 + 0.1
         
         # Create model
         model = IrisNet(
@@ -315,7 +324,9 @@ class ModelEvaluator:
         
         # Training loop
         losses = []
+        val_losses = []
         for epoch in range(epochs):
+            # Training step
             model.train()
             optimizer.zero_grad()
             outputs = model(X_train)
@@ -323,6 +334,13 @@ class ModelEvaluator:
             loss.backward()
             optimizer.step()
             losses.append(loss.item())
+            
+            # Validation step
+            model.eval()
+            with torch.no_grad():
+                val_outputs = model(X_test)
+                val_loss = criterion(val_outputs, y_test_onehot)
+                val_losses.append(val_loss.item())
         
         # Find convergence epoch
         epochs_converged = find_convergence_epoch(losses)
@@ -343,7 +361,7 @@ class ModelEvaluator:
         train_metrics = compute_classification_metrics(y_train_idx.numpy(), train_pred.numpy())
         test_metrics = compute_classification_metrics(y_test_idx.numpy(), test_pred.numpy())
         
-        return model, losses, train_acc, test_acc, epochs_converged, train_metrics, test_metrics
+        return model, losses, train_acc, test_acc, epochs_converged, train_metrics, test_metrics, val_losses
     
     def _average_metrics(self, metrics_list: List[Dict]) -> Dict:
         """Average classification metrics across folds."""
@@ -434,6 +452,7 @@ class ActiveLearningEvaluator(ModelEvaluator):
                 train_acc=trial_results['train_acc'],
                 test_acc=trial_results['test_acc'],
                 losses=trial_results['losses'],
+                val_losses=trial_results.get('val_losses'),
                 epochs_converged=trial_results['epochs_converged'],
                 num_presentations=trial_results['num_presentations'],
                 computation_time=computation_time,
@@ -527,7 +546,7 @@ class ActiveLearningEvaluator(ModelEvaluator):
             y_train_fold_idx = y_temp_idx[train_idx]
             y_val_fold_idx = y_temp_idx[val_idx]
             
-            model, losses, train_acc, val_acc, epochs_converged, reduction_data = self._train_active_model(
+            model, losses, train_acc, val_acc, epochs_converged, reduction_data, val_losses = self._train_active_model(
                 X_train_fold, y_train_fold_idx, X_val_fold, y_val_fold_idx,
                 params, strategy, epochs, **strategy_kwargs
             )
@@ -541,7 +560,7 @@ class ActiveLearningEvaluator(ModelEvaluator):
         avg_val_acc = np.mean(cv_val_accs)
         
         # Final test on holdout set
-        final_model, final_losses, _, _, epochs_converged, final_reduction_data = self._train_active_model(
+        final_model, final_losses, _, _, epochs_converged, final_reduction_data, final_val_losses = self._train_active_model(
             X_temp, y_temp_idx, X_test, y_test_idx, params, strategy, epochs, **strategy_kwargs
         )
         
@@ -559,6 +578,7 @@ class ActiveLearningEvaluator(ModelEvaluator):
             'test_acc': final_test_acc,
             'val_acc': avg_val_acc,
             'losses': final_losses,
+            'val_losses': final_val_losses,
             'epochs_converged': epochs_converged,
             'num_presentations': num_presentations,
             'training_set_reductions': final_reduction_data,
@@ -578,7 +598,7 @@ class ActiveLearningEvaluator(ModelEvaluator):
         )
         
         # Train model with active learning
-        model, losses, train_acc, test_acc, epochs_converged, reduction_data = self._train_active_model(
+        model, losses, train_acc, test_acc, epochs_converged, reduction_data, val_losses = self._train_active_model(
             X_train, y_train_idx, X_test, y_test_idx, params, strategy, epochs, **strategy_kwargs
         )
         
@@ -590,6 +610,7 @@ class ActiveLearningEvaluator(ModelEvaluator):
                 'train_acc': train_acc,
                 'test_acc': test_acc,
                 'losses': losses,
+                'val_losses': val_losses,
                 'epochs_converged': epochs_converged,
                 'num_presentations': num_presentations,
                 'training_set_reductions': reduction_data,
@@ -602,6 +623,7 @@ class ActiveLearningEvaluator(ModelEvaluator):
                 'train_acc': train_acc,
                 'test_acc': test_acc,
                 'losses': losses,
+                'val_losses': val_losses,
                 'epochs_converged': epochs_converged,
                 'num_presentations': num_presentations,
                 'training_set_reductions': reduction_data,
@@ -673,6 +695,11 @@ class ActiveLearningEvaluator(ModelEvaluator):
         current_y_train_onehot = y_train_onehot.clone()
         original_train_size = len(X_train)
         
+        # Convert y_test_idx to one-hot for validation loss calculation
+        y_test_onehot = torch.zeros(len(y_test_idx), 3)
+        y_test_onehot[range(len(y_test_idx)), y_test_idx] = 1
+        y_test_onehot = y_test_onehot * 0.8 + 0.1
+        
         # Track training set reductions at specific epochs
         reduction_data = {}
         reduction_data_actual_size = {}
@@ -680,8 +707,10 @@ class ActiveLearningEvaluator(ModelEvaluator):
         epoch_checkpoints = [25, 100, 200, 300, 500, 1000]
         
         losses = []
+        val_losses = []
         
         for epoch in range(epochs):
+            # Training step
             model.train()
             optimizer.zero_grad()
             
@@ -694,6 +723,13 @@ class ActiveLearningEvaluator(ModelEvaluator):
             optimizer.step()
             
             losses.append(loss.item())
+            
+            # Validation step
+            model.eval()
+            with torch.no_grad():
+                val_outputs = model(X_test)
+                val_loss = criterion(val_outputs, y_test_onehot)
+                val_losses.append(val_loss.item())
             
             # Apply SASLA pattern selection at specified intervals
             if epoch > 0 and epoch % selection_interval == 0:
@@ -732,7 +768,7 @@ class ActiveLearningEvaluator(ModelEvaluator):
             'training_set_sizes_at_epochs': reduction_data_actual_size,
         }
         
-        return model, losses, train_acc, test_acc, epochs_converged, reduction_data_result
+        return model, losses, train_acc, test_acc, epochs_converged, reduction_data_result, val_losses
     
     def _apply_sasla_selection(self, model: nn.Module, X_train: torch.Tensor, 
                               y_train_idx: torch.Tensor, alpha: float) -> Tuple[torch.Tensor, torch.Tensor]:
@@ -937,8 +973,14 @@ class ActiveLearningEvaluator(ModelEvaluator):
             momentum=params['momentum']
         )
         
+        # Convert y_test_idx to one-hot for validation loss calculation
+        y_test_onehot = torch.zeros(len(y_test_idx), 3)
+        y_test_onehot[range(len(y_test_idx)), y_test_idx] = 1
+        y_test_onehot = y_test_onehot * 0.8 + 0.1
+        
         # Training tracking
         losses = []
+        val_losses = []
         pool_sizes = []
         labeled_sizes = []
         
@@ -961,6 +1003,7 @@ class ActiveLearningEvaluator(ModelEvaluator):
                 if total_epochs_used >= epochs:
                     break
                     
+                # Training step
                 model.train()
                 optimizer.zero_grad()
                 outputs = model(L_X)
@@ -969,6 +1012,14 @@ class ActiveLearningEvaluator(ModelEvaluator):
                 optimizer.step()
                 
                 losses.append(loss.item())
+                
+                # Validation step
+                model.eval()
+                with torch.no_grad():
+                    val_outputs = model(X_test)
+                    val_loss = criterion(val_outputs, y_test_onehot)
+                    val_losses.append(val_loss.item())
+                
                 total_epochs_used += 1
                 
                 # Track pool statistics
@@ -1044,6 +1095,7 @@ class ActiveLearningEvaluator(ModelEvaluator):
         # Final training on complete labeled set
         remaining_epochs = epochs - total_epochs_used
         for epoch in range(remaining_epochs):
+            # Training step
             model.train()
             optimizer.zero_grad()
             outputs = model(L_X)
@@ -1051,6 +1103,13 @@ class ActiveLearningEvaluator(ModelEvaluator):
             loss.backward()
             optimizer.step()
             losses.append(loss.item())
+            
+            # Validation step
+            model.eval()
+            with torch.no_grad():
+                val_outputs = model(X_test)
+                val_loss = criterion(val_outputs, y_test_onehot)
+                val_losses.append(val_loss.item())
         
         # Final evaluation
         model.eval()
@@ -1090,7 +1149,7 @@ class ActiveLearningEvaluator(ModelEvaluator):
         # Find convergence epoch
         epochs_converged = find_convergence_epoch(losses, threshold=0.01)
         
-        return model, losses, train_acc, test_acc, epochs_converged, reduction_data
+        return model, losses, train_acc, test_acc, epochs_converged, reduction_data, val_losses
 
     def _train_ensemble_uncertainty_model(self, X_train: torch.Tensor, y_train_idx: torch.Tensor,
                                          X_test: torch.Tensor, y_test_idx: torch.Tensor,
@@ -1164,8 +1223,14 @@ class ActiveLearningEvaluator(ModelEvaluator):
         
         criterion = nn.MSELoss()
         
+        # Convert y_test_idx to one-hot for validation loss calculation
+        y_test_onehot = torch.zeros(len(y_test_idx), 3)
+        y_test_onehot[range(len(y_test_idx)), y_test_idx] = 1
+        y_test_onehot = y_test_onehot * 0.8 + 0.1
+        
         # Training tracking
         losses = []  # Average loss across ensemble
+        val_losses = []  # Average validation loss across ensemble
         pool_sizes = []
         labeled_sizes = []
         
@@ -1204,6 +1269,19 @@ class ActiveLearningEvaluator(ModelEvaluator):
                 avg_loss = np.mean(batch_losses)
                 losses.append(avg_loss)
                 epoch_losses.append(avg_loss)
+                
+                # Validation step - compute average validation loss across ensemble
+                val_batch_losses = []
+                for model in ensemble_models:
+                    model.eval()
+                    with torch.no_grad():
+                        val_outputs = model(X_test)
+                        val_loss = criterion(val_outputs, y_test_onehot)
+                        val_batch_losses.append(val_loss.item())
+                
+                avg_val_loss = np.mean(val_batch_losses)
+                val_losses.append(avg_val_loss)
+                
                 total_epochs_used += 1
                 
                 # Track pool statistics
@@ -1283,6 +1361,7 @@ class ActiveLearningEvaluator(ModelEvaluator):
         # Final training on complete labeled set
         remaining_epochs = epochs - total_epochs_used
         for epoch in range(remaining_epochs):
+            # Training step
             batch_losses = []
             for model, optimizer in zip(ensemble_models, ensemble_optimizers):
                 model.train()
@@ -1293,6 +1372,16 @@ class ActiveLearningEvaluator(ModelEvaluator):
                 optimizer.step()
                 batch_losses.append(loss.item())
             losses.append(np.mean(batch_losses))
+            
+            # Validation step
+            val_batch_losses = []
+            for model in ensemble_models:
+                model.eval()
+                with torch.no_grad():
+                    val_outputs = model(X_test)
+                    val_loss = criterion(val_outputs, y_test_onehot)
+                    val_batch_losses.append(val_loss.item())
+            val_losses.append(np.mean(val_batch_losses))
         
         # Final evaluation using ensemble averaging
         for model in ensemble_models:
@@ -1343,7 +1432,7 @@ class ActiveLearningEvaluator(ModelEvaluator):
         epochs_converged = find_convergence_epoch(losses, threshold=0.01)
         
         # Return first model as representative (all models trained similarly)
-        return ensemble_models[0], losses, train_acc, test_acc, epochs_converged, reduction_data
+        return ensemble_models[0], losses, train_acc, test_acc, epochs_converged, reduction_data, val_losses
 
 
 def compare_learning_strategies(results_list: List[Dict], strategy_names: List[str]):
