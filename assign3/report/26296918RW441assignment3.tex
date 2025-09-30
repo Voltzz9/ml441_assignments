@@ -194,7 +194,7 @@ where $\bar P(y \mid x)$ is the mean predictive distribution across the models. 
 % - Activation function selection and justification
 % - Cost function selection
 % - Regularisation
-The neural network architecture is composed of one hidden layer, of which the number of hidden units is determined through a grid search. Figure~\ref{fig:nnarch} illustrates an overview of the architecture.
+The neural network architecture is composed of one hidden layer, of which the number of hidden units is determined through a grid search for each problem. Figure~\ref{fig:nnarch} illustrates an overview of the architecture. Each hidden and output layer both use sigmoid activation functions. Weight decay, specifically L2 regularisation, is considered by experimenting with various penalty terms of $[0.0, 0.001, 0.01, 0.1]$ during the grid search. Momentum values of $[0.0, 0.5, 0.9, 0.95]$ are also considered during the grid search. 
 
 \begin{figure}[htbp]
 	\centering
@@ -202,6 +202,12 @@ The neural network architecture is composed of one hidden layer, of which the nu
 	\caption{Neural network architecture. Here, $z_i$ represents input units, $h_i$ represents hidden units, and $o_i$ represents output units.}
 	\label{fig:nnarch}
 \end{figure}
+
+The grid search is only performed once using the MSE Loss 
+\begin{equation}
+L_{\text{MSE+WD}} = \frac{1}{N} \sum_{i=1}^{N} \sum_{k=1}^{K} \big( t_{k}^{(i)} - o_{k}^{(i)} \big)^2
++\lambda \sum_{j} w_j^2
+\end{equation}
 
 
 \subsection{Output Sensitivity Algorithm}

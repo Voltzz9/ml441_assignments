@@ -1,6 +1,6 @@
 PASSIVE LEARNING RESULTS SUMMARY
 ==================================================
-Saved at: 2025-09-29 21:29:40
+Saved at: 2025-09-30 08:21:41
 Dataset: Iris
 Method: Passive Learning with SGD
 Number of trials: 50
@@ -8,12 +8,12 @@ Cross-validation: 5-fold
 
 PERFORMANCE METRICS:
 --------------------
-Training Accuracy: 0.9820 ± 0.0067
-Test Accuracy: 0.9647 ± 0.0294
-Validation Accuracy: 0.9620 ± 0.0108
+Training Accuracy: 0.9819 ± 0.0066
+Test Accuracy: 0.9633 ± 0.0292
+Validation Accuracy: 0.9627 ± 0.0104
 Best Test Accuracy: 1.0000
-Convergence Rate: 74.0%
-Avg Pattern Presentations: 823.2
+Convergence Rate: 72.0%
+Avg Pattern Presentations: 760.8
 
 BEST PARAMETERS:
 ---------------
