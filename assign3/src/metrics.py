@@ -25,6 +25,10 @@ class MetricsTracker:
         self.computation_times = []
         self.convergence_threshold = 0.95  # Default threshold
         
+        # Learning curve tracking - epoch-by-epoch accuracy
+        self.train_accuracy_curves = []  # List of lists: each trial's train accuracy per epoch
+        self.test_accuracy_curves = []   # List of lists: each trial's test accuracy per epoch
+        
         # Additional classification metrics
         self.train_f1_scores = []
         self.test_f1_scores = []
@@ -46,7 +50,9 @@ class MetricsTracker:
                          epochs_converged: int, num_presentations: int, 
                          computation_time: float, val_acc: Optional[float] = None,
                          train_metrics: Optional[Dict] = None, test_metrics: Optional[Dict] = None,
-                         val_metrics: Optional[Dict] = None, val_losses: Optional[List[float]] = None):
+                         val_metrics: Optional[Dict] = None, val_losses: Optional[List[float]] = None,
+                         train_acc_curve: Optional[List[float]] = None, 
+                         test_acc_curve: Optional[List[float]] = None):
         """Add results from a single trial."""
         self.train_accuracies.append(train_acc)
         self.test_accuracies.append(test_acc)
@@ -58,6 +64,12 @@ class MetricsTracker:
         self.epochs_to_converge.append(epochs_converged)
         self.pattern_presentations.append(num_presentations)
         self.computation_times.append(computation_time)
+        
+        # Add learning curves if provided
+        if train_acc_curve is not None:
+            self.train_accuracy_curves.append(train_acc_curve)
+        if test_acc_curve is not None:
+            self.test_accuracy_curves.append(test_acc_curve)
         
         # Add additional metrics if provided
         if train_metrics:
@@ -215,6 +227,17 @@ class MetricsTracker:
             stats_dict['avg_val_losses'] = avg_val_losses
             stats_dict['std_val_losses'] = std_val_losses
         
+        # Compute averaged accuracy curves for learning curve plotting
+        if self.train_accuracy_curves:
+            avg_train_acc_curve, std_train_acc_curve = self._compute_averaged_losses(self.train_accuracy_curves)
+            stats_dict['avg_train_acc_curve'] = avg_train_acc_curve
+            stats_dict['std_train_acc_curve'] = std_train_acc_curve
+        
+        if self.test_accuracy_curves:
+            avg_test_acc_curve, std_test_acc_curve = self._compute_averaged_losses(self.test_accuracy_curves)
+            stats_dict['avg_test_acc_curve'] = avg_test_acc_curve
+            stats_dict['std_test_acc_curve'] = std_test_acc_curve
+        
         return stats_dict
     
     def _compute_averaged_losses(self, losses_per_trial: List[List[float]]) -> Tuple[np.ndarray, np.ndarray]:
@@ -267,6 +290,26 @@ class MetricsTracker:
         if self.val_losses_per_trial:
             mean_val, std_val = self._compute_averaged_losses(self.val_losses_per_trial)
             curves['val'] = (mean_val, std_val)
+        
+        return curves
+    
+    def get_accuracy_curves(self) -> Dict[str, Tuple[np.ndarray, np.ndarray]]:
+        """
+        Get averaged accuracy curves for learning curve plotting.
+        
+        Returns:
+            Dictionary with keys 'train' and 'test' (if available), each containing
+            a tuple of (mean_accuracies, std_accuracies)
+        """
+        curves = {}
+        
+        if self.train_accuracy_curves:
+            mean_train, std_train = self._compute_averaged_losses(self.train_accuracy_curves)
+            curves['train'] = (mean_train, std_train)
+        
+        if self.test_accuracy_curves:
+            mean_test, std_test = self._compute_averaged_losses(self.test_accuracy_curves)
+            curves['test'] = (mean_test, std_test)
         
         return curves
     
@@ -335,6 +378,64 @@ class MetricsTracker:
         if save_path:
             plt.savefig(save_path, dpi=300, bbox_inches='tight')
             print(f"Loss curves saved to {save_path}")
+        
+        plt.show()
+    
+    def plot_learning_curves(self, title: str = "Learning Curves", 
+                            figsize: Tuple[int, int] = (10, 6), 
+                            save_path: Optional[str] = None):
+        """
+        Plot training and test accuracy learning curves with error bands.
+        
+        Args:
+            title: Title for the plot
+            figsize: Figure size tuple (width, height)
+            save_path: Optional path to save the plot
+        """
+        try:
+            import matplotlib.pyplot as plt
+        except ImportError:
+            print("matplotlib not available for plotting")
+            return
+        
+        curves = self.get_accuracy_curves()
+        
+        if not curves:
+            print("No accuracy curves available for plotting")
+            return
+        
+        fig, ax = plt.subplots(figsize=figsize)
+        
+        # Plot training accuracy curve
+        if 'train' in curves:
+            mean_acc, std_acc = curves['train']
+            epochs = np.arange(len(mean_acc))
+            ax.plot(epochs, mean_acc, 'b-', label='Train Accuracy', linewidth=2)
+            ax.fill_between(epochs, mean_acc - std_acc, mean_acc + std_acc, 
+                           alpha=0.2, color='blue')
+        
+        # Plot test accuracy curve
+        if 'test' in curves:
+            mean_acc, std_acc = curves['test']
+            epochs = np.arange(len(mean_acc))
+            ax.plot(epochs, mean_acc, 'r-', label='Test Accuracy', linewidth=2)
+            ax.fill_between(epochs, mean_acc - std_acc, mean_acc + std_acc, 
+                           alpha=0.2, color='red')
+        
+        ax.set_xlabel('Epoch')
+        ax.set_ylabel('Accuracy')
+        ax.set_title(title)
+        ax.legend()
+        ax.grid(True, alpha=0.3)
+        
+        # Set y-axis limits to show the full range of accuracy
+        ax.set_ylim(0, 1)
+        
+        plt.tight_layout()
+        
+        if save_path:
+            plt.savefig(save_path, dpi=300, bbox_inches='tight')
+            print(f"Learning curves saved to {save_path}")
         
         plt.show()
     

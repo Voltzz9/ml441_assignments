@@ -1,6 +1,6 @@
 ENSEMBLE UNCERTAINTY SAMPLING RESULTS SUMMARY
 ============================================================
-Saved at: 2025-09-28 13:26:51
+Saved at: 2025-09-29 21:35:22
 Dataset: Iris
 Method: Ensemble Uncertainty Sampling Active Learning
 Number of trials: 50
