@@ -3,9 +3,9 @@ import torch
 import torch.nn as nn
 import torch.optim as optim
 
-class IrisNet(nn.Module):
+class NeuralNet(nn.Module):
     def __init__(self, input_size=4, hidden_size=128, output_size=3, use_mse=False):
-        super(IrisNet, self).__init__()
+        super(NeuralNet, self).__init__()
         self.hidden = nn.Linear(input_size, hidden_size)
         self.output = nn.Linear(hidden_size, output_size)
         self.hidden_act = nn.Sigmoid()

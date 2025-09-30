@@ -1,0 +1,27 @@
+PASSIVE LEARNING RESULTS SUMMARY
+==================================================
+Saved at: 2025-09-30 20:39:33
+Dataset: Wine
+Method: Passive Learning with SGD
+Number of trials: 50
+Cross-validation: 5-fold
+
+PERFORMANCE METRICS:
+--------------------
+Training Accuracy: 0.9836 ± 0.0051
+Test Accuracy: 0.9744 ± 0.0207
+Validation Accuracy: 0.9769 ± 0.0085
+Best Test Accuracy: 1.0000
+Convergence Rate: 86.0%
+Avg Pattern Presentations: 0.0
+
+BEST PARAMETERS:
+---------------
+hidden_size: 64
+learning_rate: 0.01
+weight_decay: 0.0
+momentum: 0.9
+train_acc: 0.971830985915493
+test_acc: 1.0
+input_size: 13
+output_size: 3

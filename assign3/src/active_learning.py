@@ -7,7 +7,7 @@ from sklearn.model_selection import StratifiedKFold, train_test_split
 from sklearn.metrics import accuracy_score
 import time
 from typing import Dict, List, Tuple, Optional, Callable
-from .models import IrisNet
+from .models import NeuralNet
 from .metrics import MetricsTracker, find_convergence_epoch, compute_classification_metrics
 
 
@@ -312,11 +312,15 @@ class ModelEvaluator:
         # Scale to [0.1, 0.9] like training data
         y_test_onehot = y_test_onehot * 0.8 + 0.1
         
+        # unpack input and output sizes from params (if not present, use default)
+        input_size = params.get('input_size', 4)
+        output_size = params.get('output_size', 3)
+        
         # Create model
-        model = IrisNet(
-            input_size=4,
+        model = NeuralNet(
+            input_size=input_size,
             hidden_size=params['hidden_size'],
-            output_size=3,
+            output_size=output_size,
             use_mse=True
         )
         
@@ -955,10 +959,10 @@ class ActiveLearningEvaluator(ModelEvaluator):
         y_train_onehot = y_train_onehot * 0.8 + 0.1
         
         # Create model
-        model = IrisNet(
-            input_size=4,
+        model = NeuralNet(
+            input_size=params.get('input_size', 4),
             hidden_size=params['hidden_size'],
-            output_size=3,
+            output_size=params.get('output_size', 3),
             use_mse=True
         )
         
@@ -1228,10 +1232,10 @@ class ActiveLearningEvaluator(ModelEvaluator):
         U_y_idx = y_train_idx[unlabeled_indices].clone()
         
         # Initialize model
-        model = IrisNet(
-            input_size=4,
+        model = NeuralNet(
+            input_size=params.get('input_size', 4),
             hidden_size=params['hidden_size'],
-            output_size=3,
+            output_size=params.get('output_size', 3),
             use_mse=True
         )
         
@@ -1523,10 +1527,10 @@ class ActiveLearningEvaluator(ModelEvaluator):
         for i in range(n_ensemble):
             # Set different random seed for each model initialization
             torch.manual_seed(42 + i * 100)
-            model = IrisNet(
-                input_size=4,
+            model = NeuralNet(
+                input_size=params.get('input_size', 4),
                 hidden_size=params['hidden_size'],
-                output_size=3,
+                output_size=params.get('output_size', 3),
                 use_mse=True
             )
             optimizer = optim.SGD(

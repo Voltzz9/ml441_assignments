@@ -1,0 +1,22 @@
+ENSEMBLE UNCERTAINTY SAMPLING RESULTS SUMMARY
+============================================================
+Saved at: 2025-09-30 21:25:04
+Dataset: wine
+Method: Ensemble Uncertainty Sampling Active Learning
+Number of trials: 50
+Cross-validation: 5-fold
+Ensemble size: 3 models
+
+PERFORMANCE METRICS:
+--------------------
+Training Accuracy: 0.9693 ± 0.0114
+Test Accuracy: 0.9506 ± 0.0339
+Best Test Accuracy: 1.0000
+Convergence Rate: 52.0%
+Avg Pattern Presentations: 0.0
+
+TRAINING SET EFFICIENCY:
+-------------------------
+Original Training Set Size: 142
+Final Training Set Size: 114.0 ± 0.0
+Training Set Reduction: 19.7% ± 0.0%

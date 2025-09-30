@@ -8,6 +8,9 @@
 \usepackage{graphicx}
 \usepackage{textcomp}
 \usepackage{xcolor}
+\usepackage{booktabs}
+\usepackage{makecell}
+
 \def\BibTeX{{\rm B\kern-.05em{\sc i\kern-.025em b}\kern-.08em
     T\kern-.1667em\lower.7ex\hbox{E}\kern-.125emX}}
 \begin{document}
@@ -237,12 +240,39 @@ All experiments were performed on Fedora Linux system with a 13th Gen Intel Core
 
 
 \section{Emperical Process}
-\subsection{Dataset Selection and Preprocessing}
+The datasets along with their respective pre-processing measures are presented in this section, followed by a summary of the performance criteria and the experimental design. Finally, the statistical analysis framework is described.
+\subsection{Dataset Selection and Pre-processing}
 % - Description of at least 3 classification problems
 % - Description of at least 3 function approximation problems  
 % - Varying complexity justification
 % - Data preprocessing steps with motivations
 % - Train/validation/test splits
+Three classification and regression problems were selected each. One simple, one medium, and one hard problem were selected for each to illustrate how the algorithms apply to varying problem complexities.
+
+\begin{table*}[htbp]
+	\centering
+	\caption{Dataset Descriptions}
+	\label{tab:dataset_descriptions}
+	\begin{tabular}{@{} l c l l @{}}
+		\toprule
+		\textbf{Dataset} & \textbf{Missing Values} & \textbf{Distribution / Notes} & \textbf{Source} \\
+		\midrule
+		Iris & none & \makecell{setosa - 33.3\% \\ versicolor - 33.3\% \\ virginica - 33.3\%} & \cite{iris} \\
+		Wine & none & \makecell{cultivar 0 - 33.1\% \\ cultivar 1 - 39.9\% \\ cultivar 2 - 27.0\%} & \cite{wine} \\
+		Fashion-MNIST & none & 10 equally distributed classes & \cite{mnist} \\
+		Sine + Noise & none & synthetic sinusoidal + Gaussian noise & synthetic \\
+		California Housing & few & housing variables, spatial data & \cite{housing} \\
+		Energy Efficiency & none & building energy data, multiple target variables & \cite{energy} \\
+		\bottomrule
+	\end{tabular}
+\end{table*}
+
+TODO
+% describe on a per issue basis which datasets had it and what was done and why IMPORTANT WHY
+
+
+
+
 
 \subsection{Performance Criteria}
 % - Classification metrics: accuracy, precision, recall, F1-score
@@ -250,6 +280,9 @@ All experiments were performed on Fedora Linux system with a 13th Gen Intel Core
 % - Learning curve analysis
 % - Sample efficiency measures
 % - Statistical significance testing approach
+For the classification tasks, accuracy was the primary metric used for model performance evaluation across all learning strategies. The F1-Score was also recorded and considered for a more comprehensive, balance metric. The precision and recall and also tracked. The MCC, which is a robust metric that accounts for class imbalances, was recorded. In each training iteration, we record the number of training observations seen by the model as it trains. The training set size reduction for the active learning methods were recorded across the epochs. Epochs to convergence was recorded for each method, that is, the number of training epochs required for the model to achieve a stable performance. The convergence rate was computed by calculating the proportion of the trials achieving the convergence threshold.
+
+For the function approximation tasks
 
 \subsection{Experimental Design}
 % - Cross-validation strategy
