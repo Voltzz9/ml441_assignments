@@ -203,10 +203,11 @@ The neural network architecture is composed of one hidden layer, of which the nu
 	\label{fig:nnarch}
 \end{figure}
 
-The grid search is only performed once using the MSE Loss 
+The grid search is only performed once using the MSE Loss given in Equation~\ref{eq:mse} in the passive learning setting. Here, $N$ represents the number of training patterns, $K$ represents the number of output units, $t_k^{(i)}$ is the target value for output unit $k$ in pattern $i$, $o_k^{(i)}$ is the network output of unit $k$ in pattern $i$, $w_j$ is the weight parameter and $\lambda$ is the weight decay coefficient. The same parameter values obtained from the passive learning grid search are used in the active learning procedures in order to maintain the focus of the comparison on the algorithms and not the parameters.
 \begin{equation}
 L_{\text{MSE+WD}} = \frac{1}{N} \sum_{i=1}^{N} \sum_{k=1}^{K} \big( t_{k}^{(i)} - o_{k}^{(i)} \big)^2
 +\lambda \sum_{j} w_j^2
+\label{eq:mse}
 \end{equation}
 
 
