@@ -445,7 +445,9 @@ class ActiveLearningEvaluator(ModelEvaluator):
                                 best_params: Dict, strategy: str,
                                 n_trials: int = 50, use_cv: bool = True,
                                 cv_folds: int = 5, epochs: int = 1000,
-                                random_state: int = 12, **strategy_kwargs) -> Dict:
+                                random_state: int = 12, 
+                                track_generalization_per_presentation: bool = False,
+                                **strategy_kwargs) -> Dict:
         """
         Evaluate active learning strategies.
         
@@ -1188,7 +1190,7 @@ class ActiveLearningEvaluator(ModelEvaluator):
         # Initialize uncertainty sampling
         uncertainty_sampler = UncertaintySampling(verbose=False)
         
-        # Convert y_train_idx to one-hot for MSE loss (matching your approach)
+        # Convert y_train_idx to one-hot for MSE loss
         y_train_onehot = torch.zeros(len(y_train_idx), 3)
         y_train_onehot[range(len(y_train_idx)), y_train_idx] = 1
         # Scale to [0.1, 0.9] like in your passive learning

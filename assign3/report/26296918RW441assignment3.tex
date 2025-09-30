@@ -113,6 +113,7 @@ where $\mathbf{S}_{oz}^{(p)}$ is the output--input layer sensitivity matrix. Ass
 \begin{equation}
 	S_{oz,ki}^{(p)} = o_k^{(p)} \big(1 - o_k^{(p)}\big) 
 	\sum_{j=1}^{J} w_{kj} \, y_j^{(p)}\big(1 - y_j^{(p)}\big) v_{ji},
+	\label{eq:sens_mat}
 \end{equation}
 
 where $w_{kj}$ is the weight between output unit $o_k$ and hidden unit $y_j$, $v_{ji}$ is the weight between hidden unit $y_j$ and input unit $z_i$, $o_k^{(p)}$ is the activation value of output $o_k$, $y_j^{(p)}$ is the activation of hidden unit $y_j$, and $J$ is the total number of hidden units (including the bias unit to the output layer).  
@@ -175,15 +176,17 @@ In contrast with the output sensitivity approach, we begin with an empty set of 
 \end{algorithm}
 
 This study considers two ways to quantify uncertainty. First, given a probabilistic classifier that outputs a distribution over classes $P(y|x, \mathbf{w})$, the predictive entropy of an observation $x$ is defined as
-\[
+\begin{equation}
 H(x) = - \sum_{c=1}^{C} P(y=c \mid x, \mathbf{w}) \log P(y=c \mid x, \mathbf{w}).
-\]
+\label{eq:entropy}
+\end{equation}
 This approach has been widely used in literature \cite{e1, e2, e3}, however often along with other techniques.
 
 A second approach to measuring uncertainty involves using model ensembles. Instead of relying on a single model's output, construct an ensemble of models (via bootstrap sampling, random initialisations, or subspace sampling), and measure the disagreement among them. That is, for $k$ models, compute
-\[
+\begin{equation}
 \mathrm{Var}_{k}(P(y \mid x, \mathbf{w}_k)),
-\]
+\label{eq:var-e}
+\end{equation}
 where $\bar P(y \mid x)$ is the mean predictive distribution across the models. Empirically, ensemble methods often provide more reliable uncertainty estimates than single-model entropy, especially in settings with model misspecification or limited data \cite{Yin2023_uncertainty_active_learning}.
 
 \section{Implementation}
@@ -203,7 +206,7 @@ The neural network architecture is composed of one hidden layer, of which the nu
 	\label{fig:nnarch}
 \end{figure}
 
-The grid search is only performed once using the MSE Loss given in Equation~\ref{eq:mse} in the passive learning setting. Here, $N$ represents the number of training patterns, $K$ represents the number of output units, $t_k^{(i)}$ is the target value for output unit $k$ in pattern $i$, $o_k^{(i)}$ is the network output of unit $k$ in pattern $i$, $w_j$ is the weight parameter and $\lambda$ is the weight decay coefficient. The same parameter values obtained from the passive learning grid search are used in the active learning procedures in order to maintain the focus of the comparison on the algorithms and not the parameters.
+The grid search is only performed once using the MSE Loss given in Equation~\ref{eq:mse} in the passive learning setting. Here, $N$ represents the number of training patterns, $K$ represents the number of output units, $t_k^{(i)}$ is the target value for output unit $k$ in pattern $i$, $o_k^{(i)}$ is the network output of unit $k$ in pattern $i$, $w_j$ is the weight parameter and $\lambda$ is the weight decay coefficient. The same parameter values obtained from the passive learning grid search are used in the active learning procedures in order to maintain the focus of the comparison on the algorithms and not the parameters. SGD is used to determine the optimal parameter values.
 \begin{equation}
 L_{\text{MSE+WD}} = \frac{1}{N} \sum_{i=1}^{N} \sum_{k=1}^{K} \big( t_{k}^{(i)} - o_{k}^{(i)} \big)^2
 +\lambda \sum_{j} w_j^2
@@ -216,8 +219,14 @@ L_{\text{MSE+WD}} = \frac{1}{N} \sum_{i=1}^{N} \sum_{k=1}^{K} \big( t_{k}^{(i)} 
 % - Detailed implementation of uncertainty sampling
 % - Query selection mechanisms
 % - Batch size considerations for active learning
+The output sensitivity active learning implementation follows the background derivations previously described. A conservative pattern selection constant, $\beta = 0.9$ is used. That is, the algorithm only picks the most informative samples, keeping the training subset small at first. 
+
+The algorithm operates by repeatedly training the neural network on training subset $D_T$ until a termination criterion on $D_T$ is triggered. In this implementation, a budget of 1000 epochs is used. The exact gradient-based output sensitivity is computed using Equation~\ref{eq:sens_mat}. The pattern informativeness is then computer using both sum-norm and max-norm metrics in Equation~\ref{eq:inform} and \ref{eq:mn}. The average pattern informativeness is calculated and multiplied by $(1 - \beta)$ to determine the selection threshold. The patterns with informativeness above this threshold are selected from the candidate set. A safety mechanism was implemented here where we ensure that at least one sample per class is kept. Initially these calculations were performed linearly, however vectorising them results in a massive improvement in performance. A selection interval parameter is used to determine after how many epochs the selection takes place, this is set to one unless otherwise stated.
 
 \subsection{Uncertainty Sampling Algorithm}
+Both entropy and ensemble based uncertainty sampling were implemented. The Pool-Based Active Learning Framework described in Algorithm~\ref{alg:pool_active_learning} is implemented. First, we start with a small labelled set $L$ and large unlabelled pool $U$. The initial labelled set is defined as the smaller of 10\% of the training data or 10 observations. Then, for each query iteration, we computer the utility (uncertainty) for all the samples in $U$. This is computed using the softmax of the output units,to obtain probabilities for use in the equation Equation~\ref{eq:entropy}. We further normalise the raw entropy obtained from Equation~\ref{eq:entropy} by dividing by $\log(C)$, this is to ensure that the entropy is in the range [0, 1]. The highest utility sample is selected and its label queried, then moved from $U$ to $L$. Now, we simply retrain the model on the updated $L$ set and repeat this process until the budget is exhausted. Here, the budget is defined as the number of remaining samples.
+
+For the ensemble-based approach, three independent neural networks are trained simultaneously with different random weight initialisations to create diversity in their learned representations. Rather than using entropy of a single model's output distribution as the uncertainty metric, we exploit the disagreement among ensemble members. Specifically, for each unlabelled sample $\mathbf{x}_i \in U$, we perform forward passes through all ensemble members to obtain softmax-normalised probability distributions $\{\mathbf{p}^{(1)}_i, \mathbf{p}^{(2)}_i, ..., \mathbf{p}^{(n_{ensemble})}_i\}$. The uncertainty is then quantified as the total predictive variance across the ensemble using Equation~\ref{eq:var-e}. Higher variance indicates greater disagreement among models, suggesting the sample lies in an ambiguous region of the feature space where additional labelled data would be most informative. During training, all ensemble members are updated synchronously on the same labelled set $L$ using independent optimisers, and final predictions are made via majority voting across the ensemble. This approach trades increased computational cost (linear in $n_{ensemble}$) for potentially better-calibrated uncertainty estimates, particularly valuable when dealing with limited labelled data where single-model confidence may be poorly calibrated.
 
 \subsection{Software and Hardware Specifications}
 % - Programming language and libraries used
@@ -262,7 +271,7 @@ All experiments were performed on Fedora Linux system with a 13th Gen Intel Core
 % - Complexity analysis and classification difficulty
 % - Baseline performance metrics
 
-\subsection{Hyperparameter Optimization Results}
+\subsection{Control Parameter Optimisation Results}
 % - Optimal hidden unit numbers for each problem
 % - Optimal penalty coefficients
 % - Control parameter values with justifications

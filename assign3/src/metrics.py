@@ -29,6 +29,9 @@ class MetricsTracker:
         self.train_accuracy_curves = []  # List of lists: each trial's train accuracy per epoch
         self.test_accuracy_curves = []   # List of lists: each trial's test accuracy per epoch
         
+        # Generalization factor tracking per pattern presentation
+        self.generalization_factors_per_presentation = []  # List of dicts: {presentations: value, gen_factor: value} per trial
+        
         # Additional classification metrics
         self.train_f1_scores = []
         self.test_f1_scores = []
@@ -52,7 +55,8 @@ class MetricsTracker:
                          train_metrics: Optional[Dict] = None, test_metrics: Optional[Dict] = None,
                          val_metrics: Optional[Dict] = None, val_losses: Optional[List[float]] = None,
                          train_acc_curve: Optional[List[float]] = None, 
-                         test_acc_curve: Optional[List[float]] = None):
+                         test_acc_curve: Optional[List[float]] = None,
+                         gen_factor_per_presentation: Optional[List[Dict]] = None):
         """Add results from a single trial."""
         self.train_accuracies.append(train_acc)
         self.test_accuracies.append(test_acc)
@@ -70,6 +74,10 @@ class MetricsTracker:
             self.train_accuracy_curves.append(train_acc_curve)
         if test_acc_curve is not None:
             self.test_accuracy_curves.append(test_acc_curve)
+        
+        # Add generalization factor per presentation if provided
+        if gen_factor_per_presentation is not None:
+            self.generalization_factors_per_presentation.append(gen_factor_per_presentation)
         
         # Add additional metrics if provided
         if train_metrics:
@@ -239,6 +247,46 @@ class MetricsTracker:
             stats_dict['std_test_acc_curve'] = std_test_acc_curve
         
         return stats_dict
+    
+    def get_averaged_generalization_factors_per_presentation(self) -> Tuple[List[int], List[float], List[float]]:
+        """
+        Compute averaged generalization factors per pattern presentation across all trials.
+        
+        Returns:
+            tuple: (presentation_counts, mean_gen_factors, std_gen_factors)
+        """
+        if not self.generalization_factors_per_presentation:
+            return [], [], []
+        
+        # Collect all presentation counts across trials
+        all_presentations = set()
+        for trial_data in self.generalization_factors_per_presentation:
+            for data_point in trial_data:
+                all_presentations.add(data_point['presentations'])
+        
+        # Sort presentation counts
+        sorted_presentations = sorted(list(all_presentations))
+        
+        # Compute mean and std for each presentation count
+        mean_gen_factors = []
+        std_gen_factors = []
+        
+        for pres_count in sorted_presentations:
+            # Collect all generalization factors for this presentation count
+            gen_factors_at_pres = []
+            for trial_data in self.generalization_factors_per_presentation:
+                for data_point in trial_data:
+                    if data_point['presentations'] == pres_count:
+                        gen_factors_at_pres.append(data_point['gen_factor'])
+            
+            if gen_factors_at_pres:
+                mean_gen_factors.append(np.mean(gen_factors_at_pres))
+                std_gen_factors.append(np.std(gen_factors_at_pres))
+            else:
+                mean_gen_factors.append(0.0)
+                std_gen_factors.append(0.0)
+        
+        return sorted_presentations, mean_gen_factors, std_gen_factors
     
     def _compute_averaged_losses(self, losses_per_trial: List[List[float]]) -> Tuple[np.ndarray, np.ndarray]:
         """
