@@ -38,8 +38,11 @@ TODO
 
 \section{Introduction}
 % intro
-
+Traditional passive learning approaches in supervised learning assume that all training observations contribute equally to the learning process. However, this assumption does not always hold in practice, leading to inefficient computations. Active learning is a method of obtaining predictive models with high precision at a limited cost through the adaptive selection of samples for labeling \cite{Hino2020ActiveLP}. This study implements and compares two active learning approaches, output sensitivity analysis \cite{sasla} and uncertainty sampling \cite{alus}, against traditional passive learning. The comparison of the performance of these approaches is performed on three classification and three function approximation problems of varying complexity. 
 % discuss neural network
+The passive and active learning approaches are implemented using a neural network architecture with one hidden layer. The control parameters of the neural network are optimised through a grid search. The performance of the various algorithms is evaluated based on accuracy, convergence rate, and sample efficiency. Notably, the models are compared based on the number of training observations seen during training. This is done to illustrate the efficiency of the active learning approaches.
+
+% TODO add more to intro
 
 % outline of document
 The theoretical background of active learning is presented in section 2, while section 3 walks through the implementation of the two active learning approaches with a neural network architecture. Section 4A describes the dataset preparation, followed by the performance criteria in section 4B. Section 4C and 4D outline the experimental design and framework for analysis. Section 5 summarises the results of the various algorithms and discusses their comparative performances with statistical analyses.
