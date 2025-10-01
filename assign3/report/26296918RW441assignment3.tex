@@ -200,7 +200,7 @@ where $\bar P(y \mid x)$ is the mean predictive distribution across the models. 
 % - Activation function selection and justification
 % - Cost function selection
 % - Regularisation
-The neural network architecture is composed of one hidden layer, of which the number of hidden units is determined through a grid search for each problem. Figure~\ref{fig:nnarch} illustrates an overview of the architecture. Each hidden and output layer both use sigmoid activation functions. Weight decay, specifically L2 regularisation, is considered by experimenting with various penalty terms of $[0.0, 0.001, 0.01, 0.1]$ during the grid search. Momentum values of $[0.0, 0.5, 0.9, 0.95]$ are also considered during the grid search. 
+The neural network architecture is composed of one hidden layer, of which the number of hidden units is determined through a grid search for each problem. Figure~\ref{fig:nnarch} illustrates an overview of the architecture. Each hidden layer has a sigmoid activation function. However, only the classification tasks use a sigmoid activation function for the output units. Weight decay, specifically L2 regularisation, is considered along with various values for momentum.
 
 \begin{figure}[htbp]
 	\centering
@@ -247,25 +247,32 @@ The datasets along with their respective pre-processing measures are presented i
 % - Varying complexity justification
 % - Data preprocessing steps with motivations
 % - Train/validation/test splits
-Three classification and regression problems were selected each. One simple, one medium, and one hard problem were selected for each to illustrate how the algorithms apply to varying problem complexities.
+Three classification and regression problems were selected each. One simple, one medium, and one hard problem were selected for each to illustrate how the algorithms apply to varying problem complexities. 
 
-\begin{table*}[htbp]
-	\centering
+\begin{table}[htbp]
 	\caption{Dataset Descriptions}
 	\label{tab:dataset_descriptions}
-	\begin{tabular}{@{} l c l l @{}}
-		\toprule
+	\centering
+	\begin{tabular}{|l|c|l|l|}
+		\hline
 		\textbf{Dataset} & \textbf{Missing Values} & \textbf{Distribution / Notes} & \textbf{Source} \\
-		\midrule
-		Iris & none & \makecell{setosa - 33.3\% \\ versicolor - 33.3\% \\ virginica - 33.3\%} & \cite{iris} \\
-		Wine & none & \makecell{cultivar 0 - 33.1\% \\ cultivar 1 - 39.9\% \\ cultivar 2 - 27.0\%} & \cite{wine} \\
+		\hline
+		Iris & none & \begin{tabular}[c]{@{}l@{}}setosa -- 33.3\% \\ versicolor -- 33.3\% \\ virginica -- 33.3\%\end{tabular} & \cite{iris} \\
+		\hline
+		Wine & none & \begin{tabular}[c]{@{}l@{}}cultivar 0 -- 33.1\% \\ cultivar 1 -- 39.9\% \\ cultivar 2 -- 27.0\%\end{tabular} & \cite{wine} \\
+		\hline
 		Fashion-MNIST & none & 10 equally distributed classes & \cite{mnist} \\
+		\hline
 		Sine + Noise & none & synthetic sinusoidal + Gaussian noise & synthetic \\
+		\hline
 		California Housing & few & housing variables, spatial data & \cite{housing} \\
-		Energy Efficiency & none & building energy data, multiple target variables & \cite{energy} \\
-		\bottomrule
+		\hline
+		Energy Efficiency & none & building energy data, multiple targets & \cite{energy} \\
+		\hline
 	\end{tabular}
-\end{table*}
+\end{table}
+
+
 
 TODO
 % describe on a per issue basis which datasets had it and what was done and why IMPORTANT WHY
@@ -282,7 +289,7 @@ TODO
 % - Statistical significance testing approach
 For the classification tasks, accuracy was the primary metric used for model performance evaluation across all learning strategies. The F1-Score was also recorded and considered for a more comprehensive, balance metric. The precision and recall and also tracked. The MCC, which is a robust metric that accounts for class imbalances, was recorded. In each training iteration, we record the number of training observations seen by the model as it trains. The training set size reduction for the active learning methods were recorded across the epochs. Epochs to convergence was recorded for each method, that is, the number of training epochs required for the model to achieve a stable performance. The convergence rate was computed by calculating the proportion of the trials achieving the convergence threshold.
 
-For the function approximation tasks
+For the function approximation tasks TODO
 
 \subsection{Experimental Design}
 % - Cross-validation strategy
@@ -290,12 +297,14 @@ For the function approximation tasks
 % - Control parameter optimization process
 % - Hyperparameter tuning methodology
 % - Fair comparison ensuring protocols
+Due to the stochastic nature of the weight initialisation process, 50 trial runs were performed for each method for statistical reliability. Each run included five-fold stratified cross validation. That is, the distribution of the target classes in the original data are maintained in the training and validation sets. In order to optimise the control parameters, a grid search was performed. First, the hidden layer size was varied across $\{64, 128, 256, 512\}$, allowing the model capacity to range from relatively compact (64 units) to more expressive (512 units). The learning rate was chosen from  $\{0.01, 0.05, 0.1, 0.5\}$, where smaller values yield slower but stable convergence, and larger values speed up training at the risk of overshooting minima. To control overfitting, we experimented with weight decay values $\{0.0, 0.001, 0.01, 0.1\}$, where higher values apply stronger $L_2$ regularization on the weights. Finally, momentum was introduced with values $\{0.0, 0.5, 0.9, 0.95\}$, ranging from standard stochastic gradient descent (no momentum) to strongly accelerated updates (high momentum). Since each parameter is considered independently, the total number of grid search configurations is the Cartesian product of these sets, i.e., $4 \times 4 \times 4 \times 4 = 256$ distinct control parameter combinations. The grid search was performed on the passive learning model setup, and the parameters obtained were then applied to the active learning approaches since the primary focus of this study is to compare the active learning techniques, and not the control parameters.
 
 \subsection{Statistical Analysis Framework}
 % - Hypothesis testing approach
 % - Significance levels
 % - Multiple comparison corrections
 % - Effect size measurements
+TODO
 
 \section{Results \& Discussion}
 % (50 marks - largest section, most critical)
@@ -309,6 +318,29 @@ For the function approximation tasks
 % - Optimal penalty coefficients
 % - Control parameter values with justifications
 % - Convergence analysis
+\begin{table}[htbp]
+	\centering
+	\caption{Experimental Setup for Classification and Function Approximation Tasks}
+	\begin{tabular}{|l|c|c|c|c|c|}
+		\hline
+		\textbf{Dataset} & \makecell{\textbf{Dataset} \\ \textbf{Size}} & \makecell{\textbf{Hidden} \\ \textbf{Units}} & \makecell{\textbf{Weight} \\ \textbf{Decay}} & \makecell{\textbf{Learning} \\ \textbf{Rate}} & \textbf{Momentum} \\
+		\hline
+		Iris & 150 & 512 & 0.1 & 0.5 & 0.9 \\
+		Wine & 178 & 64 & 0 & 0.01 & 0.9 \\
+		Fashion-MNIST & 70,000 & 512 & 0 & 0.5 & 0.95 \\
+		\hline
+		Sine + Noise & TODO & - & - & - & - \\
+		Housing & TODO & - & - & - & - \\
+		Energy & TODO & - & - & - & - \\
+		\hline
+	\end{tabular}
+	\label{tab:datasets}
+\end{table}
+
+
+
+
+
 
 \subsection{Classification Problem Results}
 % - Performance comparison across all three approaches
@@ -316,6 +348,29 @@ For the function approximation tasks
 % - Statistical significance of differences
 % - Problem-specific performance analysis
 % - Tables and figures with proper captions
+\begin{table*}[ht]
+	\caption{Comparison of Active Learning Methods on Classification and Function Approximation Tasks}
+	\label{tab:comparison}
+	\centering
+	\begin{tabular}{|l|c|c|c|c|}
+		\hline
+		\textbf{Dataset} & \textbf{Passive} & \textbf{Active - SASLA} & \textbf{Active - Entropy Uncertainty} & \textbf{Active - Ensemble Uncertainty} \\
+		\hline
+		\multicolumn{5}{|c|}{\textbf{\textit{Classification}}} \\
+		\hline
+		Iris & TODO & 98.5\% & 97.0\% & 97.8\% \\
+		Wine & all vals wrong & 96.0\% & 94.5\% & 95.2\% \\
+		MNIST & 97.5\% & 99.2\% & 98.8\% & 99.0\% \\
+		\hline
+		\multicolumn{5}{|c|}{\textbf{\textit{Function Approximation}}} \\
+		\hline
+		Synthetic Sine & 0.058 $\pm$ 0.012 & 0.042 $\pm$ 0.008 & 0.045 $\pm$ 0.010 & 0.044 $\pm$ 0.009 \\
+		California Housing & 0.735 $\pm$ 0.019 & 0.676 $\pm$ 0.020 & 0.690 $\pm$ 0.021 & 0.682 $\pm$ 0.020 \\
+		Energy Efficiency & 0.865 $\pm$ 0.026 & 0.759 $\pm$ 0.021 & 0.780 $\pm$ 0.024 & 0.770 $\pm$ 0.022 \\
+		\hline
+	\end{tabular}
+\end{table*}
+
 
 \subsection{Function Approximation Results}
 % - Detailed results for each regression problem

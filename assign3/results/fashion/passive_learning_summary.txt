@@ -1,0 +1,26 @@
+PASSIVE LEARNING RESULTS SUMMARY
+==================================================
+Saved at: 2025-10-01 12:06:00
+Dataset: fashion
+Method: Passive Learning with SGD
+Number of trials: 50
+Cross-validation: 5-fold
+
+PERFORMANCE METRICS:
+--------------------
+Training Accuracy: 0.9030 ± 0.0023
+Test Accuracy: 0.8414 ± 0.0109
+Best Test Accuracy: 0.8610
+Convergence Rate: 0.0%
+Avg Pattern Presentations: 8000.0
+
+BEST PARAMETERS:
+---------------
+hidden_size: 128
+learning_rate: 0.5
+weight_decay: 0.0
+momentum: 0.95
+train_acc: 0.9
+test_acc: 0.861
+input_size: 784
+output_size: 10

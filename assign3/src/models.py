@@ -20,3 +20,17 @@ class NeuralNet(nn.Module):
             x = self.output_act(x)
         # Return raw logits for CrossEntropyLoss, sigmoid outputs for MSE
         return x
+
+class RegressionNet(nn.Module):
+    """Neural network specifically designed for regression tasks"""
+    def __init__(self, input_size=1, hidden_size=128, output_size=1):
+        super(RegressionNet, self).__init__()
+        self.hidden = nn.Linear(input_size, hidden_size)
+        self.output = nn.Linear(hidden_size, output_size)
+        self.hidden_act = nn.Sigmoid()
+        # No output activation - allows full range of outputs
+        
+    def forward(self, x):
+        x = self.hidden_act(self.hidden(x))
+        x = self.output(x)  # No activation on output for regression
+        return x

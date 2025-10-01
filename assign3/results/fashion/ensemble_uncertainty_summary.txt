@@ -1,0 +1,22 @@
+ENSEMBLE UNCERTAINTY SAMPLING RESULTS SUMMARY
+============================================================
+Saved at: 2025-10-01 11:17:42
+Dataset: fashion
+Method: Ensemble Uncertainty Sampling Active Learning
+Number of trials: 50
+Cross-validation: 5-fold
+Ensemble size: 3 models
+
+PERFORMANCE METRICS:
+--------------------
+Training Accuracy: 0.8513 ± 0.0029
+Test Accuracy: 0.8246 ± 0.0100
+Best Test Accuracy: 0.8410
+Convergence Rate: 0.0%
+Avg Pattern Presentations: 8000.0
+
+TRAINING SET EFFICIENCY:
+-------------------------
+Original Training Set Size: 4000
+Final Training Set Size: 4000.0 ± 0.0
+Training Set Reduction: 0.0% ± 0.0%

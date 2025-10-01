@@ -300,21 +300,23 @@ class ModelEvaluator:
                     params: Dict, epochs: int) -> Tuple:
         """Train a single model and return results."""
         
+        # unpack input and output sizes from params (if not present, use default)
+        input_size = params.get('input_size', 4)
+        output_size = params.get('output_size', 3)
+        
         # Convert y_train_idx to one-hot for MSE loss (matching active learning approach)
-        y_train_onehot = torch.zeros(len(y_train_idx), 3)
+        y_train_onehot = torch.zeros(len(y_train_idx), output_size)
         y_train_onehot[range(len(y_train_idx)), y_train_idx] = 1
         # Scale to [0.1, 0.9] like in active learning
         y_train_onehot = y_train_onehot * 0.8 + 0.1
         
         # Convert y_test_idx to one-hot for validation loss calculation
-        y_test_onehot = torch.zeros(len(y_test_idx), 3)
+        y_test_onehot = torch.zeros(len(y_test_idx), output_size)
         y_test_onehot[range(len(y_test_idx)), y_test_idx] = 1
         # Scale to [0.1, 0.9] like training data
         y_test_onehot = y_test_onehot * 0.8 + 0.1
         
-        # unpack input and output sizes from params (if not present, use default)
-        input_size = params.get('input_size', 4)
-        output_size = params.get('output_size', 3)
+
         
         # Create model
         model = NeuralNet(
@@ -953,7 +955,7 @@ class ActiveLearningEvaluator(ModelEvaluator):
         """
         
         # Convert y_train_idx to one-hot for MSE loss (matching other approaches)
-        y_train_onehot = torch.zeros(len(y_train_idx), 3)
+        y_train_onehot = torch.zeros(len(y_train_idx), params.get('output_size', 3))
         y_train_onehot[range(len(y_train_idx)), y_train_idx] = 1
         # Scale to [0.1, 0.9] like in other active learning methods
         y_train_onehot = y_train_onehot * 0.8 + 0.1
@@ -981,7 +983,7 @@ class ActiveLearningEvaluator(ModelEvaluator):
         original_train_size = len(X_train)
         
         # Convert y_test_idx to one-hot for validation loss calculation
-        y_test_onehot = torch.zeros(len(y_test_idx), 3)
+        y_test_onehot = torch.zeros(len(y_test_idx), params.get('output_size', 3))
         y_test_onehot[range(len(y_test_idx)), y_test_idx] = 1
         y_test_onehot = y_test_onehot * 0.8 + 0.1
         
@@ -1035,7 +1037,7 @@ class ActiveLearningEvaluator(ModelEvaluator):
                     model, current_X_train, current_y_train_idx, alpha
                 )
                 # Update one-hot encoded labels to match selected patterns
-                current_y_train_onehot = torch.zeros(len(current_y_train_idx), 3)
+                current_y_train_onehot = torch.zeros(len(current_y_train_idx), params.get('output_size', 3))
                 current_y_train_onehot[range(len(current_y_train_idx)), current_y_train_idx] = 1
                 current_y_train_onehot = current_y_train_onehot * 0.8 + 0.1
             
@@ -1195,7 +1197,7 @@ class ActiveLearningEvaluator(ModelEvaluator):
         uncertainty_sampler = UncertaintySampling(verbose=False)
         
         # Convert y_train_idx to one-hot for MSE loss
-        y_train_onehot = torch.zeros(len(y_train_idx), 3)
+        y_train_onehot = torch.zeros(len(y_train_idx), params.get('output_size', 3))
         y_train_onehot[range(len(y_train_idx)), y_train_idx] = 1
         # Scale to [0.1, 0.9] like in your passive learning
         y_train_onehot = y_train_onehot * 0.8 + 0.1
@@ -1248,7 +1250,7 @@ class ActiveLearningEvaluator(ModelEvaluator):
         )
         
         # Convert y_test_idx to one-hot for validation loss calculation
-        y_test_onehot = torch.zeros(len(y_test_idx), 3)
+        y_test_onehot = torch.zeros(len(y_test_idx), params.get('output_size', 3))
         y_test_onehot[range(len(y_test_idx)), y_test_idx] = 1
         y_test_onehot = y_test_onehot * 0.8 + 0.1
         
@@ -1440,7 +1442,7 @@ class ActiveLearningEvaluator(ModelEvaluator):
             train_acc = accuracy_score(L_y_idx.numpy(), train_pred.numpy())
             
             # Test accuracy (on full test set)
-            y_test_onehot = torch.zeros(len(y_test_idx), 3)
+            y_test_onehot = torch.zeros(len(y_test_idx), params.get('output_size', 3))
             y_test_onehot[range(len(y_test_idx)), y_test_idx] = 1
             y_test_onehot = y_test_onehot * 0.8 + 0.1
             
@@ -1489,7 +1491,7 @@ class ActiveLearningEvaluator(ModelEvaluator):
             n_ensemble: Number of models in ensemble (kept small for efficiency)
         """
         # Convert y_train_idx to one-hot for MSE loss
-        y_train_onehot = torch.zeros(len(y_train_idx), 3)
+        y_train_onehot = torch.zeros(len(y_train_idx), params.get('output_size', 3))
         y_train_onehot[range(len(y_train_idx)), y_train_idx] = 1
         y_train_onehot = y_train_onehot * 0.8 + 0.1
         
@@ -1545,7 +1547,7 @@ class ActiveLearningEvaluator(ModelEvaluator):
         criterion = nn.MSELoss()
         
         # Convert y_test_idx to one-hot for validation loss calculation
-        y_test_onehot = torch.zeros(len(y_test_idx), 3)
+        y_test_onehot = torch.zeros(len(y_test_idx), params.get('output_size', 3))
         y_test_onehot[range(len(y_test_idx)), y_test_idx] = 1
         y_test_onehot = y_test_onehot * 0.8 + 0.1
         
