@@ -258,7 +258,7 @@ An artificial function approximation task was created using
 \[
 y = \sin(2 \pi x) + \text{noise}
 \]
-where the noise is Gaussian noise centred at 0 with a standard deviation of 0.1.
+where the noise is Gaussian noise centred at 0 with a standard deviation of 0.1. The California housing dataset is a medium complexity function approximation problem with nine features and the target variable is the median house value. The energy efficiency dataset is a more complex task
 
 \begin{table}[htbp]
 	\caption{Dataset Descriptions}
@@ -312,7 +312,7 @@ For the function approximation tasks TODO
 % - Control parameter optimization process
 % - Hyperparameter tuning methodology
 % - Fair comparison ensuring protocols
-Due to the stochastic nature of the weight initialisation process, 50 trial runs were performed for each method for statistical reliability. Each run included five-fold stratified cross validation. That is, the distribution of the target classes in the original data are maintained in the training and validation sets. In order to optimise the control parameters, a grid search was performed. First, the hidden layer size was varied across $\{64, 128, 256, 512\}$, allowing the model capacity to range from relatively compact (64 units) to more expressive (512 units). The learning rate was chosen from  $\{0.01, 0.05, 0.1, 0.5\}$, where smaller values yield slower but stable convergence, and larger values speed up training at the risk of overshooting minima. To control overfitting, we experimented with weight decay values $\{0.0, 0.001, 0.01, 0.1\}$, where higher values apply stronger $L_2$ regularization on the weights. Finally, momentum was introduced with values $\{0.0, 0.5, 0.9, 0.95\}$, ranging from standard stochastic gradient descent (no momentum) to strongly accelerated updates (high momentum). Since each parameter is considered independently, the total number of grid search configurations is the Cartesian product of these sets, i.e., $4 \times 4 \times 4 \times 4 = 256$ distinct control parameter combinations. The grid search was performed on the passive learning model setup, and the parameters obtained were then applied to the active learning approaches since the primary focus of this study is to compare the active learning techniques, and not the control parameters.
+Due to the stochastic nature of the weight initialisation process, 50 trial runs were performed for each method for statistical reliability. Each run included five-fold stratified cross validation. That is, the distribution of the target classes in the original data are maintained in the training and validation sets. In order to optimise the control parameters, a grid search was performed. First, the hidden layer size was varied across $\{64, 128, 256, 512\}$, allowing the model capacity to range from relatively compact (64 units) to more expressive (512 units). The te was chosen from  $\{0.01, 0.05, 0.1, 0.5\}$, where smaller values yield slower but stable convergence, and larger values speed up training at the risk of overshooting minima. To control overfitting, we experimented with weight decay values $\{0.0, 0.001, 0.01, 0.1\}$, where higher values apply stronger $L_2$ regularization on the weights. Finally, momentum was introduced with values $\{0.0, 0.5, 0.9, 0.95\}$, ranging from standard stochastic gradient descent (no momentum) to strongly accelerated updates (high momentum). Since each parameter is considered independently, the total number of grid search configurations is the Cartesian product of these sets, i.e., $4 \times 4 \times 4 \times 4 = 256$ distinct control parameter combinations. The grid search was performed on the passive learning model setup, and the parameters obtained were then applied to the active learning approaches since the primary focus of this study is to compare the active learning techniques, and not the control parameters.
 
 \subsection{Statistical Analysis Framework}
 % - Hypothesis testing approach
@@ -344,8 +344,8 @@ Table
 		Fashion-MNIST & 70,000 & 512 & 0 & 0.5 & 0.95 \\
 		\hline
 		Sine + Noise & 500 & 64 & 0.1 & 0.5 & 0.95 \\
-		Housing & TODO & - & - & - & - \\
-		Energy & TODO & - & - & - & - \\
+		Housing & 20,640 & 64 & 0 & 0.5 & 0.95 \\
+		Energy & 768 & 64 & 0 & 0.5 & 0.9 \\
 		\hline
 	\end{tabular}
 	\label{tab:datasets}

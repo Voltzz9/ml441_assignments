@@ -1,0 +1,28 @@
+PASSIVE LEARNING RESULTS SUMMARY
+==================================================
+Saved at: 2025-10-02 15:39:04
+Dataset: energy
+Method: Passive Learning with SGD
+Number of trials: 50
+Cross-validation: 5-fold
+
+PERFORMANCE METRICS:
+--------------------
+Training Accuracy: -0.0442 ± 0.0267
+Test Accuracy: -0.0349 ± 0.0258
+Best Test Accuracy: -0.0158
+Convergence Rate: 0.0%
+Avg Pattern Presentations: 100597.8
+
+BEST PARAMETERS:
+---------------
+hidden_size: 64
+learning_rate: 0.5
+weight_decay: 0.0
+momentum: 0.9
+train_mse: 0.02069816179573536
+test_mse: 0.023414980620145798
+train_r2: 0.9299364686012268
+test_r2: 0.9210473299026489
+input_size: 8
+output_size: 1

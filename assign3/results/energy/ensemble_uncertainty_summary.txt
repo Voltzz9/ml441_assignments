@@ -1,0 +1,22 @@
+ENSEMBLE UNCERTAINTY SAMPLING RESULTS SUMMARY
+============================================================
+Saved at: 2025-10-02 15:45:16
+Dataset: energy
+Method: Ensemble Uncertainty Sampling Active Learning
+Number of trials: 50
+Cross-validation: 5-fold
+Ensemble size: 3 models
+
+PERFORMANCE METRICS:
+--------------------
+Training Accuracy: -0.1232 ± 0.0411
+Test Accuracy: -0.1210 ± 0.0409
+Best Test Accuracy: -0.0547
+Convergence Rate: 0.0%
+Avg Pattern Presentations: 122800.0
+
+TRAINING SET EFFICIENCY:
+-------------------------
+Original Training Set Size: 614
+Final Training Set Size: 281.0 ± 0.0
+Training Set Reduction: 54.2% ± 0.0%
