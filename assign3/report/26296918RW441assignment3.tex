@@ -250,7 +250,15 @@ The datasets along with their respective pre-processing measures are presented i
 % - Varying complexity justification
 % - Data preprocessing steps with motivations
 % - Train/validation/test splits
-Three classification and regression problems were selected each. One simple, one medium, and one hard problem were selected for each to illustrate how the algorithms apply to varying problem complexities.
+Three classification and regression problems were selected each. One simple, one medium, and one hard problem were selected for each to illustrate how the algorithms apply to varying problem complexities. 
+
+The iris dataset was used as the simplest classification problem with four predictors and three target classes. The distribution of the classes is noted in Table~\ref{tab:dataset_descriptions}. The wine cultivar dataset was used as dataset of medium complexity. It contains 13 features variables and a target variable of three classes representing different wine cultivars. The fashion-MNIST dataset is a more complex dataset containing pixel information from $28 \times 28$ grey scale images. There are 10 equally distributed target classes each representing different articles of clothing.
+
+An artificial function approximation task was created using
+\[
+y = \sin(2 \pi x) + \text{noise}
+\]
+where the noise is Gaussian noise centred at 0 with a standard deviation of 0.1.
 
 \begin{table}[htbp]
 	\caption{Dataset Descriptions}
@@ -268,9 +276,9 @@ Three classification and regression problems were selected each. One simple, one
 		\hline
 		Sine + Noise & sine function + Gaussian noise & synthetic \\
 		\hline
-		California Housing & housing variables, spatial data & \cite{housing} \\
+		California Housing & - & \cite{housing} \\
 		\hline
-		Energy Efficiency & multiple targets & \cite{energy} \\
+		Energy Efficiency & - & \cite{energy} \\
 		\hline
 	\end{tabular}
 \end{table}

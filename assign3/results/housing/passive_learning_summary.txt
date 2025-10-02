@@ -1,0 +1,28 @@
+PASSIVE LEARNING RESULTS SUMMARY
+==================================================
+Saved at: 2025-10-02 14:27:30
+Dataset: housing
+Method: Passive Learning with SGD
+Number of trials: 50
+Cross-validation: 5-fold
+
+PERFORMANCE METRICS:
+--------------------
+Training Accuracy: -0.0835 ± 0.0202
+Test Accuracy: -0.0842 ± 0.0217
+Best Test Accuracy: -0.0755
+Convergence Rate: 0.0%
+Avg Pattern Presentations: 1246656.0
+
+BEST PARAMETERS:
+---------------
+hidden_size: 64
+learning_rate: 0.5
+weight_decay: 0.0
+momentum: 0.95
+train_mse: 0.08154012262821198
+test_mse: 0.08425397425889969
+train_r2: 0.6371121406555176
+test_r2: 0.6386530995368958
+input_size: 12
+output_size: 1

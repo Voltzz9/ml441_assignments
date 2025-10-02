@@ -1,0 +1,22 @@
+ENSEMBLE UNCERTAINTY SAMPLING RESULTS SUMMARY
+============================================================
+Saved at: 2025-10-02 14:42:43
+Dataset: housing
+Method: Ensemble Uncertainty Sampling Active Learning
+Number of trials: 50
+Cross-validation: 5-fold
+Ensemble size: 3 models
+
+PERFORMANCE METRICS:
+--------------------
+Training Accuracy: -0.1023 ± 0.0179
+Test Accuracy: -0.1027 ± 0.0188
+Best Test Accuracy: -0.0877
+Convergence Rate: 0.0%
+Avg Pattern Presentations: 2256860.2
+
+TRAINING SET EFFICIENCY:
+-------------------------
+Original Training Set Size: 16512
+Final Training Set Size: 7591.0 ± 0.0
+Training Set Reduction: 54.0% ± 0.0%
