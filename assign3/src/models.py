@@ -34,3 +34,28 @@ class RegressionNet(nn.Module):
         x = self.hidden_act(self.hidden(x))
         x = self.output(x)  # No activation on output for regression
         return x
+
+# Compatibility wrapper for regression that works with existing active learning code
+class AdaptiveNet(nn.Module):
+    """Adaptive neural network that can handle both classification and regression"""
+    def __init__(self, input_size=4, hidden_size=128, output_size=3, use_mse=False, task_type='classification'):
+        super(AdaptiveNet, self).__init__()
+        self.hidden = nn.Linear(input_size, hidden_size)
+        self.output = nn.Linear(hidden_size, output_size)
+        self.hidden_act = nn.Sigmoid()
+        self.output_act = nn.Sigmoid()
+        self.use_mse = use_mse
+        self.task_type = task_type
+        
+    def forward(self, x):
+        x = self.hidden_act(self.hidden(x))
+        x = self.output(x)
+        
+        if self.task_type == 'regression':
+            # No output activation for regression
+            return x
+        elif self.use_mse:
+            # Apply sigmoid to output for MSE (outputs in [0,1] range)
+            x = self.output_act(x)
+        # Return raw logits for CrossEntropyLoss, sigmoid outputs for MSE
+        return x

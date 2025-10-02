@@ -7,7 +7,7 @@ from sklearn.model_selection import StratifiedKFold, train_test_split
 from sklearn.metrics import accuracy_score
 import time
 from typing import Dict, List, Tuple, Optional, Callable
-from .models import NeuralNet
+from .models import NeuralNet, RegressionNet
 from .metrics import MetricsTracker, find_convergence_epoch, compute_classification_metrics
 
 
@@ -120,7 +120,8 @@ class ModelEvaluator:
     def evaluate_passive_learning(self, X: torch.Tensor, y: torch.Tensor, 
                                  best_params: Dict, n_trials: int = 50,
                                  use_cv: bool = True, cv_folds: int = 5,
-                                 epochs: int = 1000, random_state: int = 42) -> Dict:
+                                 epochs: int = 1000, random_state: int = 42,
+                                 model_class=None) -> Dict:
         """
         Evaluate passive learning with comprehensive metrics tracking.
         
@@ -154,11 +155,11 @@ class ModelEvaluator:
             if use_cv:
                 # Cross-validation approach
                 trial_results = self._run_cv_trial(X, y, y_indices, best_params, 
-                                                 cv_folds, epochs, random_state + trial)
+                                                 cv_folds, epochs, random_state + trial, model_class)
             else:
                 # Simple train-test split approach
                 trial_results = self._run_simple_trial(X, y, y_indices, best_params, 
-                                                     epochs, random_state + trial)
+                                                     epochs, random_state + trial, model_class)
             
             computation_time = time.time() - start_time
             
@@ -189,7 +190,8 @@ class ModelEvaluator:
         return results
     
     def _run_cv_trial(self, X: torch.Tensor, y: torch.Tensor, y_indices: torch.Tensor,
-                     params: Dict, cv_folds: int, epochs: int, random_state: int) -> Dict:
+                     params: Dict, cv_folds: int, epochs: int, random_state: int,
+                     model_class=None) -> Dict:
         """Run a single trial with cross-validation."""
         
         # First, create a holdout test set
@@ -202,7 +204,6 @@ class ModelEvaluator:
         kfold = StratifiedKFold(n_splits=cv_folds, shuffle=True, random_state=random_state)
         cv_val_accs = []
         cv_train_accs = []
-        all_losses = []
         
         cv_train_metrics = []
         cv_val_metrics = []
@@ -217,14 +218,14 @@ class ModelEvaluator:
             
             # Train model
             model, losses, train_acc, val_acc, _, train_metrics, val_metrics, val_losses, _, _ = self._train_model(
-                X_train, y_train_idx, X_val, y_val_idx, params, epochs
+                X_train, y_train_idx, X_val, y_val_idx, params, epochs, model_class
             )
             
             cv_train_accs.append(train_acc)
             cv_val_accs.append(val_acc)
             cv_train_metrics.append(train_metrics)
             cv_val_metrics.append(val_metrics)
-            all_losses.extend(losses)
+            # Note: We don't collect losses from CV folds, only from final training
         
         # Average CV results
         avg_train_acc = np.mean(cv_train_accs)
@@ -237,7 +238,7 @@ class ModelEvaluator:
         # Final test on holdout set using best parameters
         # Train on all temp data for final test
         final_model, final_losses, _, _, epochs_converged, _, test_metrics, final_val_losses, train_acc_curve, test_acc_curve = self._train_model(
-            X_temp, y_temp_idx, X_test, y_test_idx, params, epochs
+            X_temp, y_temp_idx, X_test, y_test_idx, params, epochs, model_class
         )
         
         # Evaluate on test set
@@ -266,7 +267,7 @@ class ModelEvaluator:
         }
     
     def _run_simple_trial(self, X: torch.Tensor, y: torch.Tensor, y_indices: torch.Tensor,
-                         params: Dict, epochs: int, random_state: int) -> Dict:
+                         params: Dict, epochs: int, random_state: int, model_class=None) -> Dict:
         """Run a single trial with simple train-test split."""
         
         X_train, X_test, y_train, y_test, y_train_idx, y_test_idx = train_test_split(
@@ -276,7 +277,7 @@ class ModelEvaluator:
         
         # Train model
         model, losses, train_acc, test_acc, epochs_converged, train_metrics, test_metrics, val_losses, train_acc_curve, test_acc_curve = self._train_model(
-            X_train, y_train_idx, X_test, y_test_idx, params, epochs
+            X_train, y_train_idx, X_test, y_test_idx, params, epochs, model_class
         )
         
         # Calculate pattern presentations
@@ -297,34 +298,49 @@ class ModelEvaluator:
     
     def _train_model(self, X_train: torch.Tensor, y_train_idx: torch.Tensor,
                     X_test: torch.Tensor, y_test_idx: torch.Tensor,
-                    params: Dict, epochs: int) -> Tuple:
+                    params: Dict, epochs: int, model_class=None) -> Tuple:
         """Train a single model and return results."""
         
         # unpack input and output sizes from params (if not present, use default)
         input_size = params.get('input_size', 4)
         output_size = params.get('output_size', 3)
         
-        # Convert y_train_idx to one-hot for MSE loss (matching active learning approach)
-        y_train_onehot = torch.zeros(len(y_train_idx), output_size)
-        y_train_onehot[range(len(y_train_idx)), y_train_idx] = 1
-        # Scale to [0.1, 0.9] like in active learning
-        y_train_onehot = y_train_onehot * 0.8 + 0.1
+        # Default to NeuralNet if no model class specified
+        if model_class is None:
+            model_class = NeuralNet
         
-        # Convert y_test_idx to one-hot for validation loss calculation
-        y_test_onehot = torch.zeros(len(y_test_idx), output_size)
-        y_test_onehot[range(len(y_test_idx)), y_test_idx] = 1
-        # Scale to [0.1, 0.9] like training data
-        y_test_onehot = y_test_onehot * 0.8 + 0.1
-        
-
-        
-        # Create model
-        model = NeuralNet(
-            input_size=input_size,
-            hidden_size=params['hidden_size'],
-            output_size=output_size,
-            use_mse=True
-        )
+        # Handle different model types
+        if model_class == RegressionNet:
+            # For regression, use raw target values (no one-hot encoding)
+            y_train_target = y_train_idx.float().unsqueeze(1) if y_train_idx.dim() == 1 else y_train_idx.float()
+            y_test_target = y_test_idx.float().unsqueeze(1) if y_test_idx.dim() == 1 else y_test_idx.float()
+            
+            # Create regression model
+            model = model_class(
+                input_size=input_size,
+                hidden_size=params['hidden_size'],
+                output_size=1  # Single output for regression
+            )
+        else:
+            # For classification, convert to one-hot encoding
+            y_train_onehot = torch.zeros(len(y_train_idx), output_size)
+            y_train_onehot[range(len(y_train_idx)), y_train_idx] = 1
+            # Scale to [0.1, 0.9] like in active learning
+            y_train_target = y_train_onehot * 0.8 + 0.1
+            
+            # Convert y_test_idx to one-hot for validation loss calculation
+            y_test_onehot = torch.zeros(len(y_test_idx), output_size)
+            y_test_onehot[range(len(y_test_idx)), y_test_idx] = 1
+            # Scale to [0.1, 0.9] like training data
+            y_test_target = y_test_onehot * 0.8 + 0.1
+            
+            # Create classification model
+            model = model_class(
+                input_size=input_size,
+                hidden_size=params['hidden_size'],
+                output_size=output_size,
+                use_mse=True
+            )
         
         criterion = nn.MSELoss()
         optimizer = optim.SGD(
@@ -345,7 +361,7 @@ class ModelEvaluator:
             model.train()
             optimizer.zero_grad()
             outputs = model(X_train)
-            loss = criterion(outputs, y_train_onehot)
+            loss = criterion(outputs, y_train_target)
             loss.backward()
             optimizer.step()
             losses.append(loss.item())
@@ -354,16 +370,27 @@ class ModelEvaluator:
             model.eval()
             with torch.no_grad():
                 val_outputs = model(X_test)
-                val_loss = criterion(val_outputs, y_test_onehot)
+                val_loss = criterion(val_outputs, y_test_target)
                 val_losses.append(val_loss.item())
                 
-                # Track accuracy at each epoch
-                train_outputs = model(X_train)
-                train_pred = torch.argmax(train_outputs, dim=1)
-                test_pred = torch.argmax(val_outputs, dim=1)
-                
-                train_epoch_acc = accuracy_score(y_train_idx.numpy(), train_pred.numpy())
-                test_epoch_acc = accuracy_score(y_test_idx.numpy(), test_pred.numpy())
+                # Track accuracy at each epoch - handle both regression and classification
+                if model_class == RegressionNet:
+                    # For regression, calculate R² score or MSE as "accuracy"
+                    train_outputs = model(X_train)
+                    train_mse = nn.MSELoss()(train_outputs, y_train_target)
+                    test_mse = nn.MSELoss()(val_outputs, y_test_target)
+                    
+                    # Use negative MSE as "accuracy" (higher is better)
+                    train_epoch_acc = -train_mse.item()
+                    test_epoch_acc = -test_mse.item()
+                else:
+                    # For classification, calculate accuracy as usual
+                    train_outputs = model(X_train)
+                    train_pred = torch.argmax(train_outputs, dim=1)
+                    test_pred = torch.argmax(val_outputs, dim=1)
+                    
+                    train_epoch_acc = accuracy_score(y_train_idx.numpy(), train_pred.numpy())
+                    test_epoch_acc = accuracy_score(y_test_idx.numpy(), test_pred.numpy())
                 
                 train_acc_curve.append(train_epoch_acc)
                 test_acc_curve.append(test_epoch_acc)
@@ -377,15 +404,28 @@ class ModelEvaluator:
             train_outputs = model(X_train)
             test_outputs = model(X_test)
             
-            train_pred = torch.argmax(train_outputs, dim=1)
-            test_pred = torch.argmax(test_outputs, dim=1)
-            
-            train_acc = accuracy_score(y_train_idx.numpy(), train_pred.numpy())
-            test_acc = accuracy_score(y_test_idx.numpy(), test_pred.numpy())
-        
-        # Compute comprehensive classification metrics
-        train_metrics = compute_classification_metrics(y_train_idx.numpy(), train_pred.numpy())
-        test_metrics = compute_classification_metrics(y_test_idx.numpy(), test_pred.numpy())
+            if model_class == RegressionNet:
+                # For regression, use MSE-based metrics
+                train_mse = nn.MSELoss()(train_outputs, y_train_target)
+                test_mse = nn.MSELoss()(test_outputs, y_test_target)
+                
+                train_acc = -train_mse.item()  # Use negative MSE as "accuracy"
+                test_acc = -test_mse.item()
+                
+                # Create dummy metrics for regression (since classification metrics don't apply)
+                train_metrics = {'accuracy': train_acc, 'f1_score': train_acc, 'precision': train_acc, 'recall': train_acc}
+                test_metrics = {'accuracy': test_acc, 'f1_score': test_acc, 'precision': test_acc, 'recall': test_acc}
+            else:
+                # For classification, use regular accuracy
+                train_pred = torch.argmax(train_outputs, dim=1)
+                test_pred = torch.argmax(test_outputs, dim=1)
+                
+                train_acc = accuracy_score(y_train_idx.numpy(), train_pred.numpy())
+                test_acc = accuracy_score(y_test_idx.numpy(), test_pred.numpy())
+                
+                # Compute comprehensive classification metrics
+                train_metrics = compute_classification_metrics(y_train_idx.numpy(), train_pred.numpy())
+                test_metrics = compute_classification_metrics(y_test_idx.numpy(), test_pred.numpy())
         
         return model, losses, train_acc, test_acc, epochs_converged, train_metrics, test_metrics, val_losses, train_acc_curve, test_acc_curve
     
@@ -453,6 +493,7 @@ class ActiveLearningEvaluator(ModelEvaluator):
                                 cv_folds: int = 5, epochs: int = 1000,
                                 random_state: int = 12, 
                                 track_generalization_per_presentation: bool = False,
+                                model_class=None,
                                 **strategy_kwargs) -> Dict:
         """
         Evaluate active learning strategies.
@@ -921,27 +962,27 @@ class ActiveLearningEvaluator(ModelEvaluator):
     
     def _train_active_model(self, X_train: torch.Tensor, y_train_idx: torch.Tensor,
                            X_test: torch.Tensor, y_test_idx: torch.Tensor,
-                           params: Dict, strategy: str, epochs: int, **strategy_kwargs) -> Tuple:
+                           params: Dict, strategy: str, epochs: int, model_class=None, **strategy_kwargs) -> Tuple:
         """Train a single model using active learning strategy."""
         
         if strategy == 'output_sensitivity':
             return self._train_output_sensitivity_model(
-                X_train, y_train_idx, X_test, y_test_idx, params, epochs, **strategy_kwargs
+                X_train, y_train_idx, X_test, y_test_idx, params, epochs, model_class, **strategy_kwargs
             )
         elif strategy == 'uncertainty_sampling':
             return self._train_uncertainty_sampling_model(
-                X_train, y_train_idx, X_test, y_test_idx, params, epochs, **strategy_kwargs
+                X_train, y_train_idx, X_test, y_test_idx, params, epochs, model_class, **strategy_kwargs
             )
         elif strategy == 'ensemble_uncertainty':
             return self._train_ensemble_uncertainty_model(
-                X_train, y_train_idx, X_test, y_test_idx, params, epochs, **strategy_kwargs
+                X_train, y_train_idx, X_test, y_test_idx, params, epochs, model_class, **strategy_kwargs
             )
         else:
             raise ValueError(f"Unknown active learning strategy: {strategy}")
     
     def _train_output_sensitivity_model(self, X_train: torch.Tensor, y_train_idx: torch.Tensor,
                                        X_test: torch.Tensor, y_test_idx: torch.Tensor,
-                                       params: Dict, epochs: int, 
+                                       params: Dict, epochs: int, model_class=None,
                                        alpha: float = 0.9,
                                        selection_interval: int = 1) -> Tuple:
         """
@@ -954,19 +995,31 @@ class ActiveLearningEvaluator(ModelEvaluator):
         - Uses α = 0.9 as selection constant (conservative approach)
         """
         
-        # Convert y_train_idx to one-hot for MSE loss (matching other approaches)
-        y_train_onehot = torch.zeros(len(y_train_idx), params.get('output_size', 3))
-        y_train_onehot[range(len(y_train_idx)), y_train_idx] = 1
-        # Scale to [0.1, 0.9] like in other active learning methods
-        y_train_onehot = y_train_onehot * 0.8 + 0.1
-        
-        # Create model
-        model = NeuralNet(
-            input_size=params.get('input_size', 4),
-            hidden_size=params['hidden_size'],
-            output_size=params.get('output_size', 3),
-            use_mse=True
-        )
+        # Create model - use model_class if provided, otherwise default to NeuralNet
+        if model_class is None:
+            model_class = NeuralNet
+            
+        if model_class == RegressionNet:
+            # For regression
+            y_train_target = y_train_idx.float().unsqueeze(1) if y_train_idx.dim() == 1 else y_train_idx.float()
+            model = model_class(
+                input_size=params.get('input_size', 4),
+                hidden_size=params['hidden_size'],
+                output_size=1
+            )
+        else:
+            # For classification - convert to one-hot and scale
+            y_train_onehot = torch.zeros(len(y_train_idx), params.get('output_size', 3))
+            y_train_onehot[range(len(y_train_idx)), y_train_idx] = 1
+            # Scale to [0.1, 0.9] like in other active learning methods
+            y_train_target = y_train_onehot * 0.8 + 0.1
+            
+            model = model_class(
+                input_size=params.get('input_size', 4),
+                hidden_size=params['hidden_size'],
+                output_size=params.get('output_size', 3),
+                use_mse=True
+            )
         
         criterion = nn.MSELoss()
         optimizer = optim.SGD(

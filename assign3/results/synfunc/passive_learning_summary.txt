@@ -1,0 +1,28 @@
+PASSIVE LEARNING RESULTS SUMMARY
+==================================================
+Saved at: 2025-10-02 11:47:14
+Dataset: synfunc
+Method: Passive Learning with SGD
+Number of trials: 50
+Cross-validation: 5-fold
+
+PERFORMANCE METRICS:
+--------------------
+Training Accuracy: -0.0301 ± 0.0550
+Test Accuracy: -0.0321 ± 0.0609
+Best Test Accuracy: -0.0082
+Convergence Rate: 0.0%
+Avg Pattern Presentations: 60112.0
+
+BEST PARAMETERS:
+---------------
+hidden_size: 64
+learning_rate: 0.5
+weight_decay: 0.0
+momentum: 0.95
+train_mse: 0.010873846709728241
+test_mse: 0.011051956564188004
+train_r2: 0.9788451790809631
+test_r2: 0.978226363658905
+input_size: 1
+output_size: 1

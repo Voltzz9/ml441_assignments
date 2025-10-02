@@ -250,36 +250,40 @@ The datasets along with their respective pre-processing measures are presented i
 % - Varying complexity justification
 % - Data preprocessing steps with motivations
 % - Train/validation/test splits
-Three classification and regression problems were selected each. One simple, one medium, and one hard problem were selected for each to illustrate how the algorithms apply to varying problem complexities. 
+Three classification and regression problems were selected each. One simple, one medium, and one hard problem were selected for each to illustrate how the algorithms apply to varying problem complexities.
 
 \begin{table}[htbp]
 	\caption{Dataset Descriptions}
 	\label{tab:dataset_descriptions}
 	\centering
-	\begin{tabular}{|l|c|l|l|}
+	\begin{tabular}{|l|l|l|}
 		\hline
-		\textbf{Dataset} & \textbf{Missing Values} & \textbf{Distribution / Notes} & \textbf{Source} \\
+		\textbf{Dataset} & \textbf{Distribution / Notes} & \textbf{Source} \\
 		\hline
-		Iris & none & \begin{tabular}[c]{@{}l@{}}setosa -- 33.3\% \\ versicolor -- 33.3\% \\ virginica -- 33.3\%\end{tabular} & \cite{iris} \\
+		Iris & \begin{tabular}[c]{@{}l@{}}setosa -- 33.3\% \\ versicolor -- 33.3\% \\ virginica -- 33.3\%\end{tabular} & \cite{iris} \\
 		\hline
-		Wine & none & \begin{tabular}[c]{@{}l@{}}cultivar 0 -- 33.1\% \\ cultivar 1 -- 39.9\% \\ cultivar 2 -- 27.0\%\end{tabular} & \cite{wine} \\
+		Wine & \begin{tabular}[c]{@{}l@{}}cultivar 0 -- 33.1\% \\ cultivar 1 -- 39.9\% \\ cultivar 2 -- 27.0\%\end{tabular} & \cite{wine} \\
 		\hline
-		Fashion-MNIST & none & 10 equally distributed classes & \cite{mnist} \\
+		Fashion-MNIST & 10 equally distributed classes & \cite{mnist} \\
 		\hline
-		Sine + Noise & none & synthetic sinusoidal + Gaussian noise & synthetic \\
+		Sine + Noise & sine function + Gaussian noise & synthetic \\
 		\hline
-		California Housing & few & housing variables, spatial data & \cite{housing} \\
+		California Housing & housing variables, spatial data & \cite{housing} \\
 		\hline
-		Energy Efficiency & none & building energy data, multiple targets & \cite{energy} \\
+		Energy Efficiency & multiple targets & \cite{energy} \\
 		\hline
 	\end{tabular}
 \end{table}
 
 
 
-TODO
 % describe on a per issue basis which datasets had it and what was done and why IMPORTANT WHY
+% missing values
+Only the California housing dataset contained 207 missing values in the \texttt{total\_bedrooms} column. These missing values were imputed with the median for a safe estimate that is less sensitive to outliers. None of the other datasets contained missing values.
 
+% ID column
+
+% scale [-1, 1]
 
 
 
@@ -311,19 +315,18 @@ TODO
 
 \section{Results \& Discussion}
 % (50 marks - largest section, most critical)
-\subsection{Dataset Characteristics}
-% - Detailed description of each dataset
-% - Complexity analysis and classification difficulty
-% - Baseline performance metrics
+
+
 
 \subsection{Control Parameter Optimisation Results}
 % - Optimal hidden unit numbers for each problem
 % - Optimal penalty coefficients
 % - Control parameter values with justifications
 % - Convergence analysis
+Table 
 \begin{table}[htbp]
 	\centering
-	\caption{Experimental Setup for Classification and Function Approximation Tasks}
+	\caption{Parameters obtained from grid search}
 	\begin{tabular}{|l|c|c|c|c|c|}
 		\hline
 		\textbf{Dataset} & \makecell{\textbf{Dataset} \\ \textbf{Size}} & \makecell{\textbf{Hidden} \\ \textbf{Units}} & \makecell{\textbf{Weight} \\ \textbf{Decay}} & \makecell{\textbf{Learning} \\ \textbf{Rate}} & \textbf{Momentum} \\
@@ -332,7 +335,7 @@ TODO
 		Wine & 178 & 64 & 0 & 0.01 & 0.9 \\
 		Fashion-MNIST & 70,000 & 512 & 0 & 0.5 & 0.95 \\
 		\hline
-		Sine + Noise & TODO & - & - & - & - \\
+		Sine + Noise & 500 & 64 & 0.1 & 0.5 & 0.95 \\
 		Housing & TODO & - & - & - & - \\
 		Energy & TODO & - & - & - & - \\
 		\hline
@@ -352,7 +355,7 @@ TODO
 % - Problem-specific performance analysis
 % - Tables and figures with proper captions
 \begin{table*}[ht]
-	\caption{Comparison of Active Learning Methods on Classification and Function Approximation Tasks}
+	\caption{Comparison of Errors}
 	\label{tab:comparison}
 	\centering
 	\begin{tabular}{|l|c|c|c|c|}
@@ -364,12 +367,6 @@ TODO
 		Iris & TODO & 98.5\% & 97.0\% & 97.8\% \\
 		Wine & all vals wrong & 96.0\% & 94.5\% & 95.2\% \\
 		MNIST & 97.5\% & 99.2\% & 98.8\% & 99.0\% \\
-		\hline
-		\multicolumn{5}{|c|}{\textbf{\textit{Function Approximation}}} \\
-		\hline
-		Synthetic Sine & 0.058 $\pm$ 0.012 & 0.042 $\pm$ 0.008 & 0.045 $\pm$ 0.010 & 0.044 $\pm$ 0.009 \\
-		California Housing & 0.735 $\pm$ 0.019 & 0.676 $\pm$ 0.020 & 0.690 $\pm$ 0.021 & 0.682 $\pm$ 0.020 \\
-		Energy Efficiency & 0.865 $\pm$ 0.026 & 0.759 $\pm$ 0.021 & 0.780 $\pm$ 0.024 & 0.770 $\pm$ 0.022 \\
 		\hline
 	\end{tabular}
 \end{table*}
@@ -387,6 +384,7 @@ TODO
 % - Sample efficiency comparison
 % - Computational cost analysis
 % - Advantages and disadvantages of each approach
+
 
 \subsection{Discussion of Findings}
 % - Interpretation of results in context of theory

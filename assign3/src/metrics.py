@@ -32,6 +32,13 @@ class MetricsTracker:
         # Generalization factor tracking per pattern presentation
         self.generalization_factors_per_presentation = []  # List of dicts: {presentations: value, gen_factor: value} per trial
         
+        # R² tracking for regression tasks
+        self.train_r2_scores = []
+        self.test_r2_scores = []
+        self.val_r2_scores = []
+        self.train_r2_curves = []  # R² over epochs for each trial
+        self.test_r2_curves = []   # R² over epochs for each trial
+        
         # Additional classification metrics
         self.train_f1_scores = []
         self.test_f1_scores = []
@@ -86,6 +93,11 @@ class MetricsTracker:
             self.train_recall_scores.append(train_metrics.get('recall', 0.0))
             self.train_mcc_scores.append(train_metrics.get('mcc', 0.0))
             self.train_confusion_matrices.append(train_metrics.get('confusion_matrix', np.array([])))
+            # Track R² if available
+            if 'r2' in train_metrics:
+                self.train_r2_scores.append(train_metrics['r2'])
+            if 'r2_curve' in train_metrics:
+                self.train_r2_curves.append(train_metrics['r2_curve'])
         
         if test_metrics:
             self.test_f1_scores.append(test_metrics.get('f1', 0.0))
@@ -93,6 +105,11 @@ class MetricsTracker:
             self.test_recall_scores.append(test_metrics.get('recall', 0.0))
             self.test_mcc_scores.append(test_metrics.get('mcc', 0.0))
             self.test_confusion_matrices.append(test_metrics.get('confusion_matrix', np.array([])))
+            # Track R² if available
+            if 'r2' in test_metrics:
+                self.test_r2_scores.append(test_metrics['r2'])
+            if 'r2_curve' in test_metrics:
+                self.test_r2_curves.append(test_metrics['r2_curve'])
         
         if val_metrics:
             self.val_f1_scores.append(val_metrics.get('f1', 0.0))
@@ -100,6 +117,9 @@ class MetricsTracker:
             self.val_recall_scores.append(val_metrics.get('recall', 0.0))
             self.val_mcc_scores.append(val_metrics.get('mcc', 0.0))
             self.val_confusion_matrices.append(val_metrics.get('confusion_matrix', np.array([])))
+            # Track R² if available
+            if 'r2' in val_metrics:
+                self.val_r2_scores.append(val_metrics['r2'])
     
     def compute_statistics(self) -> Dict:
         """Compute comprehensive statistics across all trials."""
@@ -159,6 +179,45 @@ class MetricsTracker:
                 'val_mcc_mean': np.mean(self.val_mcc_scores),
                 'val_mcc_std': np.std(self.val_mcc_scores)
             })
+        
+        # R² statistics for regression tasks
+        if self.train_r2_scores:
+            train_r2_array = np.array(self.train_r2_scores)
+            stats_dict.update({
+                'train_r2_mean': np.mean(train_r2_array),
+                'train_r2_std': np.std(train_r2_array),
+                'train_r2_95ci': stats.t.interval(0.95, len(train_r2_array)-1, 
+                                                   loc=np.mean(train_r2_array), 
+                                                   scale=stats.sem(train_r2_array))
+            })
+        
+        if self.test_r2_scores:
+            test_r2_array = np.array(self.test_r2_scores)
+            stats_dict.update({
+                'test_r2_mean': np.mean(test_r2_array),
+                'test_r2_std': np.std(test_r2_array),
+                'test_r2_95ci': stats.t.interval(0.95, len(test_r2_array)-1, 
+                                                  loc=np.mean(test_r2_array), 
+                                                  scale=stats.sem(test_r2_array))
+            })
+        
+        if self.val_r2_scores:
+            val_r2_array = np.array(self.val_r2_scores)
+            stats_dict.update({
+                'val_r2_mean': np.mean(val_r2_array),
+                'val_r2_std': np.std(val_r2_array)
+            })
+        
+        # Compute averaged R² curves for plotting
+        if self.train_r2_curves:
+            avg_train_r2_curve, std_train_r2_curve = self._compute_averaged_losses(self.train_r2_curves)
+            stats_dict['avg_train_r2_curve'] = avg_train_r2_curve
+            stats_dict['std_train_r2_curve'] = std_train_r2_curve
+        
+        if self.test_r2_curves:
+            avg_test_r2_curve, std_test_r2_curve = self._compute_averaged_losses(self.test_r2_curves)
+            stats_dict['avg_test_r2_curve'] = avg_test_r2_curve
+            stats_dict['std_test_r2_curve'] = std_test_r2_curve
         
         # Average confusion matrices
         if self.train_confusion_matrices and len(self.train_confusion_matrices[0]) > 0:
@@ -530,6 +589,22 @@ class MetricsTracker:
             print(f"  Test:  {stats['test_mcc_mean']:.4f} ± {stats['test_mcc_std']:.4f}")
             if 'val_mcc_mean' in stats:
                 print(f"  Val:   {stats['val_mcc_mean']:.4f} ± {stats['val_mcc_std']:.4f}")
+        
+        # R² metrics for regression tasks
+        if 'test_r2_mean' in stats:
+            print(f"\nREGRESSION METRICS (R²)")
+            print("-" * 50)
+            print(f"R² Score:")
+            print(f"  Train: {stats.get('train_r2_mean', 0):.4f} ± {stats.get('train_r2_std', 0):.4f}")
+            print(f"  Test:  {stats['test_r2_mean']:.4f} ± {stats['test_r2_std']:.4f}")
+            if 'val_r2_mean' in stats:
+                print(f"  Val:   {stats['val_r2_mean']:.4f} ± {stats['val_r2_std']:.4f}")
+            
+            # Print 95% confidence intervals for R²
+            if 'train_r2_95ci' in stats:
+                print(f"\nR² 95% Confidence Intervals:")
+                print(f"  Train: [{stats['train_r2_95ci'][0]:.4f}, {stats['train_r2_95ci'][1]:.4f}]")
+                print(f"  Test:  [{stats['test_r2_95ci'][0]:.4f}, {stats['test_r2_95ci'][1]:.4f}]")
         
         # Confusion matrices
         if 'test_confusion_matrix_mean' in stats:

@@ -1,0 +1,22 @@
+ENSEMBLE UNCERTAINTY SAMPLING RESULTS SUMMARY
+============================================================
+Saved at: 2025-10-02 11:50:51
+Dataset: synfunc
+Method: Ensemble Uncertainty Sampling Active Learning
+Number of trials: 50
+Cross-validation: 5-fold
+Ensemble size: 3 models
+
+PERFORMANCE METRICS:
+--------------------
+Training Accuracy: -0.0752 ± 0.0877
+Test Accuracy: -0.0746 ± 0.0872
+Best Test Accuracy: -0.0107
+Convergence Rate: 0.0%
+Avg Pattern Presentations: 84704.0
+
+TRAINING SET EFFICIENCY:
+-------------------------
+Original Training Set Size: 400
+Final Training Set Size: 390.0 ± 0.0
+Training Set Reduction: 2.5% ± 0.0%
