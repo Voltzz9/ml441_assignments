@@ -204,6 +204,7 @@ class ModelEvaluator:
         kfold = StratifiedKFold(n_splits=cv_folds, shuffle=True, random_state=random_state)
         cv_val_accs = []
         cv_train_accs = []
+        all_losses = []
         
         cv_train_metrics = []
         cv_val_metrics = []
@@ -225,7 +226,7 @@ class ModelEvaluator:
             cv_val_accs.append(val_acc)
             cv_train_metrics.append(train_metrics)
             cv_val_metrics.append(val_metrics)
-            # Note: We don't collect losses from CV folds, only from final training
+            all_losses.extend(losses)
         
         # Average CV results
         avg_train_acc = np.mean(cv_train_accs)
