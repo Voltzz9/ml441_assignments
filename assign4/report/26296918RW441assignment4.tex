@@ -54,7 +54,44 @@ The majority of existing model-based approaches to anomaly detection construct a
 % iforest is bettern than statisitcal method, classification-based methods, clustering-based method (they all use normal )
 Normal profile methods, since not optimised for anomaly detection, often lead to too many false positives or little to no anomalies detected at all. These methods are also constrained to low dimensional data and small data size since they require significant computational power. Isolation Forests on the other hand take advantage of anomaly datasets consisting of fewer observations for the target class, and anomalies having feature values distinct from the rest of the data. Due to the nature of anomaly observations, they are isolated closer to the root of the tree. This forms the foundation of Isolation Trees.
 
-Isolation Forests involve an ensemble of Isolation Trees where the predicted anomalies are the observations with the shortest average paths across the trees.
+Isolation Forests involve an ensemble of isolation trees where the predicted anomalies are the observations with the shortest average paths across the trees. Using this model for anomaly detection involves two stages. The first stage constructs isolation trees by recursively partitioning 
+
+\begin{algorithm}[H]
+	\caption{iForest($X$, $t$, $\psi$)}
+	\label{alg:iforest}
+	\begin{algorithmic}[1]
+		\Require $X$ -- input data, \ $t$ -- number of trees, \ $\psi$ -- subsampling size
+		\Ensure A set of $t$ isolation trees
+		\State Initialize $\text{Forest} \gets \emptyset$
+		\For{$i = 1$ to $t$}
+		\State $X' \gets \text{sample}(X, \psi)$
+		\State $\text{Forest} \gets \text{Forest} \cup \text{iTree}(X')$
+		\EndFor \\
+		\Return $\text{Forest}$
+	\end{algorithmic}
+\end{algorithm}
+
+
+
+\begin{algorithm}[H]
+	\caption{iTree($X'$)}
+	\label{alg:itree}
+	\begin{algorithmic}[1]
+		\Require $X'$ -- input data  
+		\Ensure an isolation tree
+		\If{$X'$ cannot be divided}
+		\Return $\text{exNode}\{\text{Size} \leftarrow |X'|\}$
+		\Else
+		\State Let $Q$ be the list of attributes in $X'$
+		\State Randomly select an attribute $q \in Q$
+		\State Randomly select a split point $p$ between the max and min values of attribute $q$ in $X'$
+		\State $X_l \gets \text{filter}(X', q < p)$
+		\State $X_r \gets \text{filter}(X', q \ge p)$
+		\Return $\text{inNode}\{\text{Left} \leftarrow \text{iTree}(X_l), \text{Right} \leftarrow \text{iTree}(X_r), \text{SplitAtt} \leftarrow q, \text{SplitValue} \leftarrow p\}$
+		\EndIf
+	\end{algorithmic}
+\end{algorithm}
+
 
 % TODO add some more commmentary from looking at sklearn docs
 

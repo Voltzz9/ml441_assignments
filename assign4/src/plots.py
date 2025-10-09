@@ -2,6 +2,8 @@ import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 import os
+from scipy import stats
+import seaborn as sns
 
 # set all plots to times new roman
 plt.rcParams['font.family'] = 'Times New Roman'
@@ -443,5 +445,234 @@ def plot_precision_recall_tradeoff(param_sizes, precision_mean, precision_std, r
         print(f'Plot saved to {save_path}')
     
     plt.show()
+
+
+def plot_bootstrap_stability_box_violin(df_results, save_path=None):
+    """
+    Creates box plot with violin overlay showing bootstrap vs no bootstrap stability.
+    Includes statistical significance testing and effect size (Cohen's d).
+    
+    Note: Since we only have summary statistics (mean, std, min, max), we create 
+    a visualization showing the distribution range rather than individual data points.
+    
+    Parameters:
+    - df_results: DataFrame with bootstrap results containing mean, std, min, max
+    - save_path: Path to save the figure
+    """
+    from scipy import stats
+    import seaborn as sns
+    
+    fig, ax = plt.subplots(figsize=(10, 7))
+    
+    # Get data for both bootstrap settings
+    bootstrap_true = df_results[df_results['param_value'] == True].iloc[0]
+    bootstrap_false = df_results[df_results['param_value'] == False].iloc[0]
+    
+    # Create visualization showing mean with error bars and range
+    positions = [0, 1]
+    labels = ['Bootstrap=True', 'Bootstrap=False']
+    
+    means = [bootstrap_true['f1_score_mean'], bootstrap_false['f1_score_mean']]
+    stds = [bootstrap_true['f1_score_std'], bootstrap_false['f1_score_std']]
+    mins = [bootstrap_true['f1_score_min'], bootstrap_false['f1_score_min']]
+    maxs = [bootstrap_true['f1_score_max'], bootstrap_false['f1_score_max']]
+    
+    # Plot range as boxes
+    colors = [plt.cm.Set2.colors[0], plt.cm.Set2.colors[1]]
+    for i, pos in enumerate(positions):
+        # Draw range box
+        height = maxs[i] - mins[i]
+        rect = plt.Rectangle((pos - 0.25, mins[i]), 0.5, height, 
+                            facecolor=colors[i], alpha=0.3, edgecolor=colors[i], linewidth=2)
+        ax.add_patch(rect)
+        
+        # Draw mean line
+        ax.plot([pos - 0.25, pos + 0.25], [means[i], means[i]], 
+               color=colors[i], linewidth=3, label=labels[i] if i == 0 else None)
+        
+        # Draw std range
+        ax.plot([pos, pos], [means[i] - stds[i], means[i] + stds[i]], 
+               color='black', linewidth=2, alpha=0.7)
+        ax.plot([pos - 0.1, pos + 0.1], [means[i] - stds[i], means[i] - stds[i]], 
+               color='black', linewidth=2, alpha=0.7)
+        ax.plot([pos - 0.1, pos + 0.1], [means[i] + stds[i], means[i] + stds[i]], 
+               color='black', linewidth=2, alpha=0.7)
+    
+    # Calculate Cohen's d effect size
+    mean_diff = means[0] - means[1]
+    pooled_std = np.sqrt((stds[0]**2 + stds[1]**2) / 2)
+    cohens_d = mean_diff / pooled_std if pooled_std != 0 else 0
+    
+    # Add significance annotation based on overlap of confidence intervals
+    # If std ranges don't overlap, likely significant
+    ci_true = (means[0] - 2*stds[0], means[0] + 2*stds[0])
+    ci_false = (means[1] - 2*stds[1], means[1] + 2*stds[1])
+    
+    overlap = not (ci_true[1] < ci_false[0] or ci_false[1] < ci_true[0])
+    
+    y_max = max(maxs)
+    y_min = min(mins)
+    y_range = y_max - y_min
+    
+    # Significance based on effect size and overlap
+    if abs(cohens_d) > 0.8 and not overlap:
+        sig_text = '***'
+    elif abs(cohens_d) > 0.5:
+        sig_text = '**'
+    elif abs(cohens_d) > 0.2:
+        sig_text = '*'
+    else:
+        sig_text = 'ns'
+    
+    ax.plot([0, 1], [y_max + 0.005, y_max + 0.005], 'k-', linewidth=1.5)
+    ax.text(0.5, y_max + 0.007, sig_text, ha='center', fontsize=20)
+    
+    # Add effect size annotation
+    ax.text(0.5, y_min - 0.01, f"Cohen's d = {cohens_d:.3f}", 
+           ha='center', fontsize=18, style='italic')
+    
+    ax.set_xticks(positions)
+    ax.set_xticklabels(labels)
+    ax.set_ylabel('F1 Score')
+    ax.grid(True, alpha=0.3, axis='y')
+    ax.set_xlim([-0.5, 1.5])
+    
+    if save_path:
+        plt.savefig(save_path, dpi=300, bbox_inches='tight')
+        print(f'Plot saved to {save_path}')
+    
+    plt.show()
+    
+    return cohens_d, overlap
+
+
+def plot_radar_chart_bootstrap(df_results, save_path=None):
+    """
+    Creates a radar chart comparing bootstrap vs no bootstrap across multiple metrics.
+    Metrics: F1, Precision, Recall, AUC-PR, AUC-ROC
+    
+    Parameters:
+    - df_results: DataFrame with bootstrap results 
+    - save_path: Path to save the figure
+    """
+    from math import pi
+    
+    # Get metrics for both bootstrap settings
+    bootstrap_true = df_results[df_results['param_value'] == True].iloc[0]
+    bootstrap_false = df_results[df_results['param_value'] == False].iloc[0]
+    
+    # Define metrics and their values
+    metrics = ['F1', 'Precision', 'Recall', 'AUC-PR', 'AUC-ROC']
+    
+    values_true = [
+        bootstrap_true['f1_score_mean'],
+        bootstrap_true['precision_mean'],
+        bootstrap_true['recall_mean'],
+        bootstrap_true['pr_auc_mean'],
+        bootstrap_true['roc_auc_mean']
+    ]
+    
+    values_false = [
+        bootstrap_false['f1_score_mean'],
+        bootstrap_false['precision_mean'],
+        bootstrap_false['recall_mean'],
+        bootstrap_false['pr_auc_mean'],
+        bootstrap_false['roc_auc_mean']
+    ]
+    
+    # Number of variables
+    num_vars = len(metrics)
+    
+    # Compute angle for each axis
+    angles = [n / float(num_vars) * 2 * pi for n in range(num_vars)]
+    values_true += values_true[:1]  # Complete the circle
+    values_false += values_false[:1]
+    angles += angles[:1]
+    
+    # Create figure
+    fig, ax = plt.subplots(figsize=(10, 10), subplot_kw=dict(projection='polar'))
+    
+    # Plot data
+    ax.plot(angles, values_true, 'o-', linewidth=2, label='Bootstrap=True', color=plt.cm.Set2.colors[0])
+    ax.fill(angles, values_true, alpha=0.25, color=plt.cm.Set2.colors[0])
+    
+    ax.plot(angles, values_false, 'o-', linewidth=2, label='Bootstrap=False', color=plt.cm.Set2.colors[1])
+    ax.fill(angles, values_false, alpha=0.25, color=plt.cm.Set2.colors[1])
+    
+    # Fix axis to go in the right order and start at 12 o'clock
+    ax.set_theta_offset(pi / 2)
+    ax.set_theta_direction(-1)
+    
+    # Draw axis lines for each angle and label
+    ax.set_xticks(angles[:-1])
+    ax.set_xticklabels(metrics, fontsize=20)
+    
+    # Set y-axis limits
+    ax.set_ylim(0, 1)
+    ax.set_yticks([0.2, 0.4, 0.6, 0.8, 1.0])
+    ax.set_yticklabels(['0.2', '0.4', '0.6', '0.8', '1.0'], fontsize=16)
+    
+    # Add legend
+    ax.legend(loc='upper right', bbox_to_anchor=(1.3, 1.1), fontsize=18)
+    
+    # Add grid
+    ax.grid(True, alpha=0.3)
+    
+    if save_path:
+        plt.savefig(save_path, dpi=300, bbox_inches='tight')
+        print(f'Plot saved to {save_path}')
+    
+    plt.show()
+
+
+def plot_bootstrap_contamination_interaction(df_interaction, save_path=None):
+    """
+    Creates grouped bar chart showing bootstrap × contamination interaction.
+    
+    Parameters:
+    - df_interaction: DataFrame with bootstrap and contamination results
+    - save_path: Path to save the figure
+    """
+    fig, ax = plt.subplots(figsize=(14, 7))
+    
+    # Get unique contamination values
+    contamination_values = sorted(df_interaction['contamination'].unique())
+    
+    # Get F1 scores for each bootstrap setting
+    f1_bootstrap_true = []
+    f1_bootstrap_false = []
+    
+    for cont in contamination_values:
+        df_cont = df_interaction[df_interaction['contamination'] == cont]
+        f1_true = df_cont[df_cont['bootstrap'] == True]['f1_score_mean'].values[0]
+        f1_false = df_cont[df_cont['bootstrap'] == False]['f1_score_mean'].values[0]
+        f1_bootstrap_true.append(f1_true)
+        f1_bootstrap_false.append(f1_false)
+    
+    # Set up bar positions
+    x = np.arange(len(contamination_values))
+    width = 0.35
+    
+    # Create bars
+    bars1 = ax.bar(x - width/2, f1_bootstrap_true, width, 
+                   label='Bootstrap=True', color=plt.cm.Set2.colors[0])
+    bars2 = ax.bar(x + width/2, f1_bootstrap_false, width,
+                   label='Bootstrap=False', color=plt.cm.Set2.colors[1])
+    
+    # Customize plot
+    ax.set_xlabel('Contamination')
+    ax.set_ylabel('F1 Score')
+    ax.set_xticks(x)
+    ax.set_xticklabels([f'{c:.2f}' for c in contamination_values])
+    ax.legend(fontsize=20)
+    ax.grid(True, alpha=0.3, axis='y')
+    ax.set_ylim([0, 1])
+    
+    if save_path:
+        plt.savefig(save_path, dpi=300, bbox_inches='tight')
+        print(f'Plot saved to {save_path}')
+    
+    plt.show()
+
 
 
