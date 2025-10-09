@@ -130,7 +130,11 @@ def plot_convergence_curve(param_sizes, precision_mean, precision_std, recall_me
     else:   
         ax.set_xlabel(f'{param_name}')
     ax.set_ylabel('Score')
-    ax.set_ylim([0.5, 1.0])
+    # Dynamically set y-axis limits based on actual data range
+    all_scores = np.concatenate([f1_mean, precision_mean, recall_mean])
+    y_min = max(0, min(all_scores) - 0.05)  # Leave some margin, but don't go below 0
+    y_max = min(1, max(all_scores) + 0.05)  # Leave some margin, but don't exceed 1
+    ax.set_ylim([y_min, y_max])
     ax.legend(loc='best', fontsize=20)
     ax.grid(True, alpha=0.3)
     
@@ -416,15 +420,15 @@ def plot_precision_recall_tradeoff(param_sizes, precision_mean, precision_std, r
                    xytext=(5, 5), textcoords='offset points',
                    fontsize=14, alpha=0.8)
     
-    # Add diagonal line for F1 contours
-    recall_range = np.linspace(min(recall_mean)-0.05, max(recall_mean)+0.05, 100)
-    for f1 in [0.7, 0.8, 0.9, 0.95]:
-        precision_contour = (f1 * recall_range) / (2 * recall_range - f1)
-        precision_contour = np.clip(precision_contour, 0, 1)
-        ax.plot(recall_range, precision_contour, '--', alpha=0.3, color='gray', linewidth=1)
-        # Label the contour
-        ax.text(recall_range[-1], precision_contour[-1], f'F1={f1}', 
-               fontsize=12, alpha=0.5, va='bottom')
+    # # Add diagonal line for F1 contours
+    # recall_range = np.linspace(min(recall_mean)-0.05, max(recall_mean)+0.05, 100)
+    # for f1 in [0.7, 0.8, 0.9, 0.95]:
+    #     precision_contour = (f1 * recall_range) / (2 * recall_range - f1)
+    #     precision_contour = np.clip(precision_contour, 0, 1)
+    #     ax.plot(recall_range, precision_contour, '--', alpha=0.3, color='gray', linewidth=1)
+    #     # Label the contour
+    #     ax.text(recall_range[-1], precision_contour[-1], f'F1={f1}', 
+    #            fontsize=12, alpha=0.5, va='bottom')
     
     ax.set_xlabel('Recall')
     ax.set_ylabel('Precision')
