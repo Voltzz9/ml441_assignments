@@ -1,0 +1,22 @@
+{
+  "compensation_effect": {
+    "low_feat_high_tree": 0.039486351102191335,
+    "high_feat_low_tree": 0.013932630428470046,
+    "difference": 0.02555372067372129,
+    "compensates": false
+  },
+  "best_configuration": {
+    "max_features": 1,
+    "n_estimators": 1,
+    "f1_score": 0.043089249542582586,
+    "f1_std": 0.01582956542110991,
+    "training_time": 0.09762040774027507
+  },
+  "most_efficient": {
+    "max_features": 1,
+    "n_estimators": 1,
+    "f1_score": 0.043089249542582586,
+    "efficiency": 0.44139591853810023
+  },
+  "n_pareto_optimal": 3
+}
