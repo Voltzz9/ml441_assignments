@@ -160,12 +160,14 @@ where $c(\psi)$ is the average path length of unsuccessful searches and $E(h(\bo
 \section{Implementation}
 \subsection{Isolation Forest Algorithm}
 % brief recap alg
-The Scikit-learn library \cite{scikit-learn} implementation of the Isolation Forest algorithm described in the background section is used to detect anomalies across three varied datasets. 
+The Scikit-learn library \cite{scikit-learn} implementation of the Isolation Forest algorithm described in the background section is used to detect anomalies across three varied datasets. This implementation returns the anomaly score for each observation. The path length to an observation in the a tree, averaged over a forest of isolation trees, is used as a measure of normality and the decision function. When the Isolation Forest collectively produces shorter path length for a particular observation, it is likely to be an anomaly. The maximum depth of each tree is $\lceil log_2(n) \rceil$ where $n$ is the number of samples used to build the tree.
 
+% our setup
+
+
+
+\subsection{Experimental Setup}
 A random seed of 12 is used for all stochastic procedures to ensure reproducibility. All tests are conducted on a Fedora Linux 41 system with a 13th Gen Intel Core i3-13100 CPU with 16 GiB of memory. The computationally significant portions of the algorithm are running the algorithm with a large ensemble size and also a large parameter grid for some parameter combinations. The code for this paper is available on GitHub \cite{github}.
-
-\subsection{Control Parameters}
-% explain the ranges tested over
 \section{Empirical Process}
 % 20 MARKS
 \subsection{Datasets}
