@@ -41,8 +41,16 @@ TODO
 \end{IEEEkeywords}
 
 \section{Introduction}
+% Start with purpose
+
+
+% then what was done
+
 % define "anomalies"
 
+% main finding
+
+% report structure description
 
 \section{Background}
 \subsection{Isolation Forests}
@@ -119,47 +127,232 @@ The maximum features describes how many features are selected at random before t
 The bootstrap parameter controls the manner in which sample observations are drawn for each tree. This determines whether sampling is done with or without replacement. That is, sub-sample $X'$ is randomly sampled with or without replacement in Algorithm~\ref{alg:iforest} from $X$. Bootstrap resampling can lead to marginal improvements across classification metrics \cite{Choi2025Impact}.
 
 \subsection{Evaluation Stage}
-For this stage, a single path length $h(x)$ is computed by counting the number of edges from the root node to an external node as an instance $x$ traverse each iTree. There is a predefined height limit, \textit{hlim}, that when reached, the algorithm returns the value $e$ plus an adjustment $c(Size)$. This process is described in Algorithm~\ref{alg:pathlength} \cite{iforest2}. The worst case time complexity of the evaluation stage for a dataset size $n$ is $O(nt \psi)$.
+For this stage, a single path length $h(\boldsymbol{x})$ is computed by counting the number of edges from the root node to an external node as an instance $\boldsymbol{x}$ traverse each iTree. There is a predefined height limit, \textit{hlim}, that when reached, the algorithm returns the value $e$ plus an adjustment $c(Size)$. This process is described in Algorithm~\ref{alg:pathlength} \cite{iforest2}. The worst case time complexity of the evaluation stage for a dataset size $n$ is $O(nt \psi)$.
 
 \begin{algorithm}[H]
-	\caption{PathLength($x, T, h_{lim}, e$)}
+	\caption{PathLength($\boldsymbol{x}, T, h_{lim}, e$)}
 	\label{alg:pathlength}
 	\begin{algorithmic}[1]
-		\Require $x$ -- an instance; $T$ -- an iTree; $h_{lim}$ -- height limit; $e$ -- current path length (initialized to 0 when first called)
-		\Ensure Path length of $x$
+		\Require $\boldsymbol{x}$ -- an instance; $T$ -- an iTree; $h_{lim}$ -- height limit; $e$ -- current path length (initialized to 0 when first called)
+		\Ensure Path length of $\boldsymbol{x}$
 		\If{$T$ is an external node \textbf{or} $e \ge h_{lim}$}
 		\State \Return $e + c(T.\text{size})$ \Comment{$c(\cdot)$ is defined in Equation (1)}
 		\Else
 		\State $a \gets T.\text{splitAtt}$
 		\If{$x_a < T.\text{splitValue}$}
-		\State \Return $\text{PathLength}(x, T.\text{left}, h_{lim}, e + 1)$
+		\State \Return $\text{PathLength}(\boldsymbol{x}, T.\text{left}, h_{lim}, e + 1)$
 		\Else
-		\State \Return $\text{PathLength}(x, T.\text{right}, h_{lim}, e + 1)$
+		\State \Return $\text{PathLength}(\boldsymbol{x}, T.\text{right}, h_{lim}, e + 1)$
 		\EndIf
 		\EndIf
 	\end{algorithmic}
 \end{algorithm}
 
-The anomaly score $s(x, \psi)$ for instance $x$ is computed using
+The anomaly score $s(\boldsymbol{x}, \psi)$ for instance $\boldsymbol{x}$ is computed using
 
 \begin{equation}
-	s(x \psi) = 2^{- \frac{E(h(x))}{c(\psi)}},
+	s(\boldsymbol{x} \psi) = 2^{- \frac{E(h(\boldsymbol{x}))}{c(\psi)}},
 \end{equation}
 
-where $c(\psi)$ is the average path length of unsuccessful searches and $E(h(x))$ is the average depth from the forest of isolation trees. If the score of an observation $s$ is close to 1, the observation is an anomaly. If an observation has a score much smaller than 0.5, then it is regarded as a normal instance. However, if all observations return a score of approximately 0.5, then there are no distinct anomalies.
+where $c(\psi)$ is the average path length of unsuccessful searches and $E(h(\boldsymbol{x}))$ is the average depth from the forest of isolation trees. If the score of an observation $s$ is close to 1, the observation is an anomaly. If an observation has a score much smaller than 0.5, then it is regarded as a normal instance. However, if all observations return a score of approximately 0.5, then there are no distinct anomalies.
 
 
 \section{Implementation}
-\subsection{test}
+\subsection{Isolation Forest Algorithm}
+% brief recap alg
 
+% key computational aspects
+
+%software - sklearn
+
+% random seed
+
+% hardware specs
+
+\subsection{Control Parameters}
+% explain the ranges tested over
 \section{Empirical Process}
+% 20 MARKS
+\subsection{Datasets}
+% table summary
+% rationale for selection
+\subsection{Evaluation Metrics}
+% metrics and justification
+
+\subsection{Experimental Design}
+\subsubsection{Single-Parameter Analysis}
+%Methodology: Vary one parameter while holding others at defaults
+%Repetitions: Number of runs per configuration (e.g., 10 runs for stability)
+%Baseline configuration: Specify default parameter set
+\subsubsection{Multi-Parameter Interaction Analysis}
+% grid search
+% vis strategy
+\subsubsection{Cross-Dataset Comparison}
+%consistency
+%identify data depepedent properties
+
+\subsection{Analysis Framework}
+% convergence analysis
+
+% subsampling anayside
+
+%contamination analysis
+
+% feature subsampling imapact
+
+% bootstrap
+
+\subsection{Reproducibility}
+% random seed
+% link to github
 
 
 
 \section{Results \& Discussion}
+% intro
+\subsection{Number of Estimators}
+\subsubsection{Performance Convergence}
+% show multi plot
+
+% refer to appendix
+
+% observations - where do we plataeu
+
+% dataset complexity and reqiured ensemble size
+
+\subsubsection{Stability and Variance Reduction}
+% coef variation vs n est
+
+% observe exponetial decay in variance?
+
+% Law of large numbers in ensemble context
+
+% stability threshold
+
+\subsubsection{Computational Efficiency}
+% f1 vs training time scatter
+
+% sweet spot observe
+
+%give practical recommendation
+
+% when to use larger
+
+\subsection{Maximum Samples}
+\subsubsection{Performance vs. Subsample size}
+% fig f1 all cs max samples
+
+% observe is auto optimal
+
+% data specific patterns
+
+% discuss bias variance tradoff
+
+%Large samples → swamping (anomalies hidden in normal data)
+
+\subsubsection{Swamping Effect Analysis}
+% fig precision recall curves
+
+% observe large samples boos recal but hurt precision, small sames opposive
+
+% when does swamping become bad
+
+% mechanism: small samples isolate anomalies faster
+
+\subsubsection{Training Time Complexity}
+% fig
+
+% is siblinear?
+
+% comp advatnages?
+
+\subsubsection{Emperical Rule Derivation}
+% fig
 
 
 
+\subsection{Contamination Parameter}
+\subsubsection{Robustness to Misspecification}
+% fig: perfromance - heatmap or line plot
+
+% over or under
+
+% why IF robust to errors?
+
+% practical overestinamation?  - some cases want overestimate like fraud
+
+\subsubsection{Precision-Recall Trade-off}
+% fig: stacked bar / dual axis 
+%igh contamination → high recall, low precision
+%Trade-off quantification
+%
+%
+%Discussion:
+%
+%Mechanism: threshold adjustment via contamination
+%Application-specific tuning (cost of false positives vs. negatives)
+
+\subsubsection{Calibration Analysis}
+% idk have a closer look
+
+
+\subsection{Maximum Features}
+\subsubsection{Performance}
+% fig: f1 ... vs max featu
+
+% observe high dim improve
+
+% low dim degredation?
+
+% curse of dimensionality miitgation
+
+% irrelevant feature noise reduction
+
+% when full features are necessary
+
+
+\subsubsection{Efficiency-Performance Trade-off}
+% fig: dual axis plot f1 and time v max feat
+
+% observe sweet spot and data specific patterns
+
+% give practical recommendation for high dim data, mention diminishing returns
+
+\subsubsection{Interaction with Ensemble Size}
+% fig: speech only heatmap of f1 score
+
+% obseve can more trees compensate for fewer features?
+
+% trade ioff
+
+% practical guidance
+
+\subsection{Bootstrap Parameter}
+\subsubsection{Stability Comparison}
+% fig: box plots with and without bootstrap
+
+% statistical wilcoxon signed rank
+
+% effect size cohen's d annotation
+
+% variance differences across datasets
+
+% statistical sig
+
+\subsubsection{Performance Metrics}
+% give table of performance
+
+% say how it doesnt help much
+
+\subsubsection{Interaction with Contamination}
+% fig: grouped bar
+
+%Does bootstrap effect depend on contamination level?
+
+\subsection{Bootstrap}
+
+\subsection{Practical Guidelines}
+% table with guide
 \section{Conclusions}
 
 
