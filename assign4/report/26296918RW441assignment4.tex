@@ -160,14 +160,9 @@ where $c(\psi)$ is the average path length of unsuccessful searches and $E(h(\bo
 \section{Implementation}
 \subsection{Isolation Forest Algorithm}
 % brief recap alg
+The Scikit-learn library \cite{scikit-learn} implementation of the Isolation Forest algorithm described in the background section is used to detect anomalies across three varied datasets. 
 
-% key computational aspects
-
-%software - sklearn
-
-% random seed
-
-% hardware specs
+A random seed of 12 is used for all stochastic procedures to ensure reproducibility. All tests are conducted on a Fedora Linux 41 system with a 13th Gen Intel Core i3-13100 CPU with 16 GiB of memory. The computationally significant portions of the algorithm are running the algorithm with a large ensemble size and also a large parameter grid for some parameter combinations. The code for this paper is available on GitHub \cite{github}.
 
 \subsection{Control Parameters}
 % explain the ranges tested over
@@ -185,7 +180,7 @@ where $c(\psi)$ is the average path length of unsuccessful searches and $E(h(\bo
 %Repetitions: Number of runs per configuration (e.g., 10 runs for stability)
 %Baseline configuration: Specify default parameter set
 \subsubsection{Multi-Parameter Interaction Analysis}
-% grid search
+% grid search specify values
 % vis strategy
 \subsubsection{Cross-Dataset Comparison}
 %consistency
