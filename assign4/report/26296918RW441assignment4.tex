@@ -239,7 +239,7 @@ The observed effects of the control parameters are described in this section. An
 \subsection{Number of Estimators}
 \subsubsection{Performance Convergence}
 % show multi plot
-Generally, the performance reported by the F1-score indicated that the model converged with 50 estimators in the ensemble. This is illustrated in Figure~\ref{fig:n_estimators_f1}. The difference in F1-scores after convergence showed the varying complexity of the anomaly detection problems in each of the datasets. Notably, the recall was substantially higher than the precision in the shuttle dataset seen in Figure~\ref{fig:n_estimators_shuttle}. However, the other two datasets maintained a similar precision and recall value even as the number of estimators were increased. This is observed in Figure~\ref{fig:n_estimators_campaign} and Figure~\ref{fig:n_estimators_fraud}. The ensemble misclassifies some normal points as anomalies, but does easily isolate anomalies, leading to higher recall and lower precision. For the fraud dataset, the F1-score only fully plateaus after 125 estimators were used in the ensemble. 
+Generally, the performance reported by the F1-score indicated that the model converged with 50 estimators in the ensemble. This is illustrated in Figure~\ref{fig:n_estimators_f1}. The difference in F1-scores after convergence showed the varying complexity of the anomaly detection problems in each of the datasets. All datasets datasets maintained a similar precision and recall value even as the number of estimators were increased. This is observed in Figure~\ref{fig:n_estimators_campaign} and Figure~\ref{fig:n_estimators_fraud}. For the fraud dataset, the F1-score only fully plateaued after 125 estimators were used in the ensemble. 
 
 It can therefore be concluded that if 125 estimators are used, the model will likely converge. For computationally constrained circumstances, as few as 25 estimators will suffice for most use cases.
 \begin{figure}[H]
@@ -288,7 +288,7 @@ The training time of the model scaled linearly as the number of estimators was i
 \subsection{Maximum Samples}
 \subsubsection{Performance vs. Subsample size}
 % fig f1 all cs max samples
-
+The parameter value of 256 commonly recommended \cite{iforest2} showed impressive performance for the shuttle dataset. That is , the F1-score peaked at about this number of samples seen in Figure~\ref{fig:max_samples_all}. However, for the more complex fraud dataset, the F1-score was still gradually increasing even as the maximum samples approached 512. This increase was due to \textit{both} precision and recall improving as illustrated in Figure~\ref{fig:max_samples_fraud}. Therefore, a value of 256 is often sufficient to gain the majority of the predictive power of the Isolation Forest model. However, it should be acknowledged that small increases in performance can still be found at larger values for more complex datasets. This trend reflects the classic bias–variance trade-off, where smaller subsample sizes introduce higher bias (underfitting) while larger ones reduce bias but increase variance, leading to diminishing returns beyond a certain point. The drop in F1-score beyond 256 samples for the shuttle dataset suggests swamping, where excessive subsampling caused normal points to be incorrectly isolated as anomalies, degrading overall performance.
 \begin{figure}[H]
 	\centering
 	\includegraphics[width=0.95\linewidth]{../results/multi_dataset/max_samples_f1.pdf}
@@ -296,38 +296,57 @@ The training time of the model scaled linearly as the number of estimators was i
 	\label{fig:max_samples_all}
 \end{figure}
 % observe is auto optimal
-
 % data specific patterns
-
 % discuss bias variance tradoff
-
 %Large samples → swamping (anomalies hidden in normal data)
 
 \subsubsection{Swamping Effect Analysis}
-% fig precision recall curves
-
 % observe large samples boos recal but hurt precision, small sames opposive
-
 % when does swamping become bad
-
 % mechanism: small samples isolate anomalies faster
+% fig precision recall curves
+In the case of the shuttle dataset, the swamping effect occured after the parameter is set to 256, where the F1-score sharply drops from 0.9588 to 0.9039. This decline indicates that as the Isolation Forest begins to use too many samples, it starts isolating normal instances as anomalies, effectively “swamping” the true outliers within an overfitted model that loses its ability to clearly separate normal and anomalous points. This effect is also illustrated in Figure~\ref{fig:max_samples_shuttle}.
+
+\begin{figure}[H]
+	\centering
+	\includegraphics[width=\linewidth]{../results/shuttle/max_samples/precision_recall_tradeoff.pdf}
+	\caption{Precision recall trade-off for shuttle dataset for various maximum sample parameters.}
+	\label{fig:max_samples_shuttle}
+\end{figure}
+
 
 \subsubsection{Training Time Complexity}
 % fig
-
 % is siblinear?
-
 % comp advatnages?
+The slope of the training time against maximum samples curve for the campaign dataset was 0.072, which indicates that training time increases very slowly with sample size, confirming the Isolation Forest’s sublinear computational complexity ($O(n^{0.07})$), where runtime grows far slower than the number of samples. The knee of the curve is where the maximum samples parameter is 12 marks the point of diminishing returns, beyond which training time continues to rise while F1-score improvements plateau around 0.2365. A similar trend was observed in the shuttle dataset in Figure~\ref{fig:tt_samples_shuttle}. Unlike the campaign and shuttle datasets, where training time increased slightly with sample size, the negative slope in the fraud dataset (–0.097) indicates that for this dataset, larger subsamples actually led to more slightly more efficient training. This is illustrated in Figure~\ref{fig:tt_samples_fraud} possibly due to reduced variance in tree construction. The performance peaked later at a maximum samples parameter of 64, reflecting a higher data complexity.
+ 
+\begin{figure}[H]
+	\centering
+	\includegraphics[width=0.95\linewidth]{../results/campaign/max_samples/training_time_scaling.pdf}
+	\caption{Training time scaling with maximum samples parameter for campaign dataset.}
+	\label{fig:tt_samples_campaign}
+\end{figure}
 
-\subsubsection{Emperical Rule Derivation}
+Based on these findings, practitioners should set the maximum samples parameter at the knee of the curve (around 12-64 depending on dataset complexity) to balance training efficiency with model performance, as exceeding this point yields diminishing returns in F1-score improvement while unnecessarily increasing computational cost.
+
+
+\subsubsection{Empirical Rule Derivation}
 % fig
+The best performing rule was to use $\texttt{max\_samples}=\sqrt{n}$, where $n$ is the number of observations in the dataset. This rule recommended values that produced the largest F1-score for each dataset, observed in Figure~\ref{fig:rule_samples_shuttle}, Figure~\ref{fig:rule_samples_campaign} and Figure~\ref{fig:rule_samples_fraud}. Notably, this rule ($\sqrt{284807}=533$) produced a better F1-score than simply using a fixed value of 256 for the larger fraud dataset. That is, 0.2747 as opposed to 0.2637. Therefore, it can be concluded that for larger datasets, a larger maximum sample parameter value should be considered.
+\begin{figure}[H]
+	\centering
+	\includegraphics[width=0.95\linewidth]{../results/shuttle/max_samples/empirical_rules.pdf}
+	\caption{F1-score for various maximum samples parameter rules for shuttle dataset.}
+	\label{fig:rule_samples_shuttle}
+\end{figure}
 
 
 
 \subsection{Contamination Parameter}
 \subsubsection{Robustness to Misspecification}
 % fig: perfromance - heatmap or line plot
-Since this parameter is directly used by the algorithm to determine the threshold at which to classify an observation as an anomaly, the F1-score peaks at the contamination value that matches the correct percentage of anomalies in the dataset. For example, in Figure~\ref{fig:contamination_all} the F1-score is greatest for the shuttle dataset at approximately 0.0715 which matches the anomaly rate of the dataset of 7.15\%.
+Since this parameter is directly used by the algorithm to determine the threshold at which to classify an observation as an anomaly, the F1-score peaks at the contamination value that matches the correct percentage of anomalies in the dataset. For example, in Figure~\ref{fig:contamination_all} the F1-score is greatest for the shuttle dataset at approximately 0.0715 which matches the anomaly rate of the dataset of 7.15\%. It is important to consider this parameter carefully, as it is not robust to misspecification.
 \begin{figure}[H]
 	\centering
 	\includegraphics[width=0.95\linewidth]{../results/multi_dataset/contamination_f1.pdf}
@@ -340,51 +359,83 @@ Since this parameter is directly used by the algorithm to determine the threshol
 
 % practical overestinamation?  - some cases want overestimate like fraud
 
-\subsubsection{Precision-Recall Trade-off}
-% fig: stacked bar / dual axis 
-%igh contamination → high recall, low precision
-%Trade-off quantification
-%
-%
-%Discussion:
-%
-%Mechanism: threshold adjustment via contamination
-%Application-specific tuning (cost of false positives vs. negatives)
+
+Underestimating contamination severely degraded performance in the campaign dataset (average F1: 0.2281) compared to overestimating (average F1: 0.3150), with underestimation performing 8.69\% worse. This indicates it is safer to overestimate the contamination rate when the true anomaly proportion is uncertain. The plot in Figure~\ref{fig:contamination_campaign} describes this trend. A similar trend was observed in the shuttle dataset seen in Figure~\ref{fig:contamination_shuttle}.
+
+\begin{figure}[H]
+	\centering
+	\includegraphics[width=0.95\linewidth]{../results/campaign/contamination/performance_vs_contamination.pdf}
+	\caption{Performance with increasing values of the contamination parameter for campaign dataset.}
+	\label{fig:contamination_campaign}
+\end{figure}
+
 
 \subsubsection{Calibration Analysis}
 % idk have a closer look
-
+Since the algorithm directly controls the number of predicted anomalies with the contamination parameter, the calibration error is near 0 for all parameter values. This is shown in Figure~\ref{fig:contamination_shuttle_calibration}.
+\begin{figure}[H]
+	\centering
+	\includegraphics[width=0.95\linewidth]{../results/shuttle/contamination/f1_vs_calibration_error.pdf}
+	\caption{Calibration errors for various contamination values.}
+	\label{fig:contamination_shuttle_calibration}
+\end{figure}
 
 \subsection{Maximum Features}
 \subsubsection{Performance}
 % fig: f1 ... vs max featu
-
 % observe high dim improve
-
 % low dim degredation?
-
 % curse of dimensionality miitgation
-
 % irrelevant feature noise reduction
-
 % when full features are necessary
 
+For the shuttle dataset, considering all 9 features led to the best performance as shown in Figure~\ref{fig:max_features_shuttle}. Interestingly, only one feature per split produced surprisingly good performance, and two features brought the performance to near optimal. For the campaign dataset on the other hand, fewer features per split resulted in slightly better performance as illustrated in Figure~\ref{fig:max_features_campaign}. The fraud dataset reported the highest F1-score with the maximum features parameter at one, seen in Figure~\ref{fig:max_features_fraud}.
+
+These contrasting results highlight the importance of dataset-specific tuning for the maximum features control parameter. Low-dimensional datasets with few features (like shuttle) benefit from considering more (or all) features per split to capture complex decision boundaries, while datasets with noisy or redundant features (like campaign and fraud) may achieve better generalisation by limiting feature consideration and reducing overfitting.
+
+
+\begin{figure}[H]
+	\centering
+	\includegraphics[width=0.95\linewidth]{../results/shuttle/max_features/performance_vs_max_features.pdf}
+	\caption{Performance of maximum features parameter for shuttle dataset.}
+	\label{fig:max_features_shuttle}
+\end{figure}
 
 \subsubsection{Efficiency-Performance Trade-off}
 % fig: dual axis plot f1 and time v max feat
 
 % observe sweet spot and data specific patterns
-
 % give practical recommendation for high dim data, mention diminishing returns
+The efficiency of the maximum features parameter tended to decreases as more features were considered per split for the campaign and fraud datasets. This is shown in Figure~\ref{fig:max_features_tt_campaign}. This aligns with the diminishing returns explained in the previous section, as the majority of the anomalies could be found by considering only a few features for a split. On the other hand, the shuttle dataset showed increased efficiency as more features were considered, illustrated in Figure~\ref{fig:max_features_tt_shuttle}. This contrast suggests that the optimal number of features per split is highly dataset-dependent, influenced by the underlying feature relevance and redundancy.
+
+
+
+
+\begin{figure}[H]
+	\centering
+	\includegraphics[width=0.95\linewidth]{../results/campaign/max_features/efficiency_vs_max_features.pdf}
+	\caption{Training time of maximum features parameter for campaign dataset.}
+	\label{fig:max_features_tt_campaign}
+\end{figure}
 
 \subsubsection{Interaction with Ensemble Size}
 % fig: speech only heatmap of f1 score
-
 % obseve can more trees compensate for fewer features?
-
 % trade ioff
-
 % practical guidance
+The model performance benefited from both an increase in the number of estimators and the number of features considered per split, shown in Figure~\ref{fig:int_hm_shuttle}.
+
+
+
+
+
+\begin{figure}[H]
+	\centering
+	\includegraphics[width=0.95\linewidth]{../results/shuttle/max_features/interaction_f1_heatmap.pdf}
+	\caption{Interaction heatmap for number of features and estimators for shuttle dataset.}
+	\label{fig:int_hm_shuttle}
+\end{figure}
+
 
 \subsection{Bootstrap Parameter}
 \subsubsection{Stability Comparison}
@@ -450,6 +501,77 @@ Since this parameter is directly used by the algorithm to determine the threshol
 	\includegraphics[width=\linewidth]{../results/fraud/n_estimators/stability_analysis.pdf}
 	\caption{Stability analysis of fraud dataset.}
 	\label{fig:n_estimators_var_fraud}
+\end{figure}
+
+\begin{figure}[H]
+	\centering
+	\includegraphics[width=0.95\linewidth]{../results/shuttle/max_samples/training_time_scaling.pdf}
+	\caption{Training time scaling with maximum samples parameter for shuttle dataset.}
+	\label{fig:tt_samples_shuttle}
+\end{figure}
+\begin{figure}[H]
+	\centering
+	\includegraphics[width=0.95\linewidth]{../results/fraud/max_samples/training_time_scaling.pdf}
+	\caption{Training time scaling with maximum samples parameter for fraud dataset.}
+	\label{fig:tt_samples_fraud}
+\end{figure}
+
+
+
+\begin{figure}[H]
+	\centering
+	\includegraphics[width=\linewidth]{../results/fraud/max_samples/precision_recall_tradeoff.pdf}
+	\caption{Precision recall trade-off for fraud dataset for various maximum sample parameters.}
+	\label{fig:max_samples_fraud}
+\end{figure}
+
+
+
+\begin{figure}[H]
+	\centering
+	\includegraphics[width=0.95\linewidth]{../results/campaign/max_samples/empirical_rules.pdf}
+	\caption{F1-score for various maximum samples parameter rules for campaign dataset.}
+	\label{fig:rule_samples_campaign}
+\end{figure}
+\begin{figure}[H]
+	\centering
+	\includegraphics[width=0.95\linewidth]{../results/fraud/max_samples/empirical_rules.pdf}
+	\caption{F1-score for various maximum samples parameter rules for fraud dataset.}
+	\label{fig:rule_samples_fraud}
+\end{figure}
+
+
+
+\begin{figure}[H]
+	\centering
+	\includegraphics[width=0.95\linewidth]{../results/shuttle/contamination/performance_vs_contamination.pdf}
+	\caption{Performance with increasing values of the contamination parameter for shuttle dataset.}
+	\label{fig:contamination_shuttle}
+\end{figure}
+
+
+
+\begin{figure}[H]
+	\centering
+	\includegraphics[width=0.95\linewidth]{../results/campaign/max_features/performance_vs_max_features.pdf}
+	\caption{Performance of maximum features parameter for campaign dataset.}
+	\label{fig:max_features_campaign}
+\end{figure}
+
+\begin{figure}[H]
+	\centering
+	\includegraphics[width=0.95\linewidth]{../results/fraud/max_features/performance_vs_max_features.pdf}
+	\caption{Performance of maximum features parameter for fraud dataset.}
+	\label{fig:max_features_fraud}
+\end{figure}
+
+
+
+\begin{figure}[H]
+	\centering
+	\includegraphics[width=0.95\linewidth]{../results/shuttle/max_features/efficiency_vs_max_features.pdf}
+	\caption{Training time of maximum features parameter for shuttle dataset.}
+	\label{fig:max_features_tt_shuttle}
 \end{figure}
 
 

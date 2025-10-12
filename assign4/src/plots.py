@@ -348,7 +348,7 @@ def plot_training_time_scaling(param_sizes, training_times, param_name='max_samp
     fig, ax = plt.subplots(figsize=(12, 7))
     
     # Plot on log-log scale
-    ax.loglog(param_sizes_numeric, training_times, marker='o', linewidth=2, markersize=10, color='steelblue')
+    ax.loglog(param_sizes_numeric, training_times, marker='o', linewidth=2, markersize=10)
     
     # Fit a line to estimate slope (complexity)
     log_params = np.log(param_sizes_numeric)
