@@ -42,7 +42,7 @@ TODO
 
 \section{Introduction}
 % Start with purpose
-
+Employing Isolation Forests to solve anomaly detection problems involves selecting numerous control parameters which affect the model's ability to correctly identify anomalies. When used properly, Isolation Forests are powerful tools with significant discriminative power, especially considering their simplicity.
 
 % then what was done
 
@@ -423,8 +423,7 @@ The efficiency of the maximum features parameter tended to decreases as more fea
 % obseve can more trees compensate for fewer features?
 % trade ioff
 % practical guidance
-The model performance benefited from both an increase in the number of estimators and the number of features considered per split, shown in Figure~\ref{fig:int_hm_shuttle}.
-
+The model performance benefited from both an increase in the number of estimators and the number of features considered per split, shown in Figure~\ref{fig:int_hm_shuttle}.  On the other hand, the number of estimators increased the training time significantly more than the number of features. This is seen in Figure~\ref{fig:int_hm_tt_shuttle}. The campaign dataset exhibited a different trend, with still more estimators favourable, but fewer features considered. This is shown in Figure~\ref{fig:int_hm_campaign}. The fraud dataset was least affected by the maximum features parameter, shown in Figure~\ref{fig:int_3d_fraud}.
 
 
 
@@ -437,20 +436,53 @@ The model performance benefited from both an increase in the number of estimator
 \end{figure}
 
 
+\begin{figure}[H]
+	\centering
+	\includegraphics[width=0.95\linewidth]{../results/fraud/max_features/interaction_3d_surface.pdf}
+	\caption{Interaction plot for number of features, estimators and F1-score for fraud dataset.}
+	\label{fig:int_3d_fraud}
+\end{figure}
+
+Critically, the analysis revealed that ensemble size cannot effectively compensate for insufficient feature availability, configurations with limited features but many estimators consistently underperformed compared to configurations with adequate features and fewer estimators. Restricting features created a performance ceiling that additional trees cannot overcome.
+
+
 \subsection{Bootstrap Parameter}
 \subsubsection{Stability Comparison}
 % fig: box plots with and without bootstrap
 
 % statistical wilcoxon signed rank
-
 % effect size cohen's d annotation
-
 % variance differences across datasets
-
 % statistical sig
+The Cohen's d values for all the datasets were below 0.1, meaning that the bootstrap parameter had a negligible effect. The boxplots in Figure~\ref{fig:bootstrap_shuttle}, Figure~\ref{fig:bootstrap_campaign}, and Figure~\ref{fig:bootstrap_fraud} show that the bootstrap parameter can sometimes slightly decrease the performance of the isolation tree model. The performance did remain stable for both parameter options.
+
+\begin{figure}[H]
+	\centering
+	\includegraphics[width=0.95\linewidth]{../results/shuttle/bootstrap/bootstrap_stability_box.pdf}
+	\caption{Bootstrap stability for shuttle dataset.}
+	\label{fig:bootstrap_shuttle}
+\end{figure}
 
 \subsubsection{Performance Metrics}
 % give table of performance
+The performance only slightly increased using the bootstrap parameter for the fraud dataset where the F1-score  increase by 0.196\%, seen in Table~\ref{tab:bootstrap_comparison}. The datasets consulted in this paper revealed that the bootstrap parameter can be safely ignored for most anomaly detection problems, as it provides little to no improvement in model performance.
+\begin{table}[htbp]
+	\caption{Comparison of F1 Scores With and Without Bootstrapping}
+	\centering
+	\begin{tabular}{|l|c|c|c|c|}
+		\hline
+		\textbf{Dataset} & \textbf{Bootstrap=True} & \textbf{Bootstrap=False} & \textbf{Difference} & \textbf{\% Change} \\ 
+		\hline
+		shuttle & 0.957305 & 0.958800 & -0.001496 & -0.156021 \\ 
+		\hline
+		campaign & 0.325003 & 0.325766 & -0.000763 & -0.234302 \\ 
+		\hline
+		fraud & 0.263675 & 0.263159 & 0.000516 & 0.196142 \\ 
+		\hline
+	\end{tabular}
+	\label{tab:bootstrap_comparison}
+\end{table}
+
 
 % say how it doesnt help much
 
@@ -573,7 +605,35 @@ The model performance benefited from both an increase in the number of estimator
 	\caption{Training time of maximum features parameter for shuttle dataset.}
 	\label{fig:max_features_tt_shuttle}
 \end{figure}
+\begin{figure}[H]
+	\centering
+	\includegraphics[width=0.95\linewidth]{../results/shuttle/max_features/interaction_time_heatmap.pdf}
+	\caption{Interaction heatmap for number of features and estimators for shuttle dataset.}
+	\label{fig:int_hm_tt_shuttle}
+\end{figure}
 
+\begin{figure}[H]
+	\centering
+	\includegraphics[width=0.95\linewidth]{../results/campaign/max_features/interaction_f1_heatmap.pdf}
+	\caption{Interaction heatmap for number of features and estimators for campaign dataset.}
+	\label{fig:int_hm_campaign}
+\end{figure}
+
+
+
+\begin{figure}[H]
+	\centering
+	\includegraphics[width=0.95\linewidth]{../results/campaign/bootstrap/bootstrap_stability_box.pdf}
+	\caption{Bootstrap stability for campaign dataset.}
+	\label{fig:bootstrap_campaign}
+\end{figure}
+
+\begin{figure}[H]
+	\centering
+	\includegraphics[width=0.95\linewidth]{../results/fraud/bootstrap/bootstrap_stability_box.pdf}
+	\caption{Bootstrap stability for fraud dataset.}
+	\label{fig:bootstrap_fraud}
+\end{figure}
 
 
 \end{document}
