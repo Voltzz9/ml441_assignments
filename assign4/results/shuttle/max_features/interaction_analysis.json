@@ -1,22 +1,22 @@
 {
   "compensation_effect": {
-    "low_feat_high_tree": 0.7227979274611398,
+    "low_feat_high_tree": 0.8480138169257341,
     "high_feat_low_tree": 0.3551823755784351,
-    "difference": 0.36761555188270467,
+    "difference": 0.49283144134729895,
     "compensates": false
   },
   "best_configuration": {
     "max_features": 9,
-    "n_estimators": 16,
-    "f1_score": 0.9416618691230091,
-    "f1_std": 0.016804830555052327,
-    "training_time": 0.2900630633036296
+    "n_estimators": 200,
+    "f1_score": 0.9519286125503742,
+    "f1_std": 0.00962478612394962,
+    "training_time": 3.5372438430786133
   },
   "most_efficient": {
     "max_features": 6,
     "n_estimators": 1,
     "f1_score": 0.4279313968901219,
-    "efficiency": 15.45067806712542
+    "efficiency": 16.53606745438974
   },
   "n_pareto_optimal": 13
 }

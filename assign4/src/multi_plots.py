@@ -15,6 +15,31 @@ from matplotlib.cm import get_cmap
 mpl.rcParams['axes.prop_cycle'] = mpl.cycler(color=plt.cm.Set2.colors)
 
 
+def safe_read_csv(file_path):
+    """
+    Safely read a CSV file with error handling for malformed lines.
+    
+    Parameters:
+    - file_path: Path to the CSV file
+    
+    Returns:
+    - DataFrame or None if reading fails
+    """
+    try:
+        # Try with on_bad_lines parameter (pandas >= 1.3.0)
+        return pd.read_csv(file_path, on_bad_lines='skip')
+    except TypeError:
+        # Fallback for older pandas versions
+        try:
+            return pd.read_csv(file_path, error_bad_lines=False, warn_bad_lines=True)
+        except:
+            # Last resort: try with engine='python' which is more forgiving
+            return pd.read_csv(file_path, engine='python', on_bad_lines='skip')
+    except Exception as e:
+        print(f"Error reading {file_path}: {str(e)}")
+        return None
+
+
 def plot_multi_dataset_convergence(param_name, datasets=['shuttle', 'campaign', 'fraud'], 
                                    results_base_path='../results', save_path=None):
     """
@@ -44,7 +69,7 @@ def plot_multi_dataset_convergence(param_name, datasets=['shuttle', 'campaign', 
     fig, axes = plt.subplots(1, 3, figsize=(24, 6))
     
     # Define colors for datasets
-    colors = {'shuttle': '#1f77b4', 'campaign': '#ff7f0e', 'fraud': '#2ca02c'}
+    colors = {'shuttle': '#66C2A5', 'campaign': '#FC8D62', 'fraud': '#8DA0CB'}
     markers = {'shuttle': 'o', 'campaign': 's', 'fraud': '^'}
     
     # Track if we should use log scale
@@ -58,7 +83,16 @@ def plot_multi_dataset_convergence(param_name, datasets=['shuttle', 'campaign', 
             print(f"Warning: {file_path} not found, skipping {dataset}")
             continue
             
-        df = pd.read_csv(file_path)
+        df = safe_read_csv(file_path)
+
+            
+        if df is None:
+
+            
+            print(f"Warning: Failed to read {file_path}, skipping {dataset}")
+
+            
+            continue
         
         # Extract param values and metrics
         param_values = df['param_value'].values
@@ -165,11 +199,11 @@ def plot_multi_dataset_single_metric(param_name, metric='f1_score', datasets=['s
     fig, ax = plt.subplots(figsize=(12, 7))
     
     # Define colors for datasets
-    colors = {'shuttle': '#1f77b4', 'campaign': '#ff7f0e', 'fraud': '#2ca02c'}
+    colors = {'shuttle': '#66C2A5', 'campaign': '#FC8D62', 'fraud': '#8DA0CB'}
     markers = {'shuttle': 'o', 'campaign': 's', 'fraud': '^'}
     
     # Track if we should use log scale
-    use_log_scale = param_name in ['n_estimators', 'max_samples']
+    use_log_scale = False
     
     for dataset in datasets:
         # Load data
@@ -179,7 +213,16 @@ def plot_multi_dataset_single_metric(param_name, metric='f1_score', datasets=['s
             print(f"Warning: {file_path} not found, skipping {dataset}")
             continue
             
-        df = pd.read_csv(file_path)
+        df = safe_read_csv(file_path)
+
+            
+        if df is None:
+
+            
+            print(f"Warning: Failed to read {file_path}, skipping {dataset}")
+
+            
+            continue
         
         # Extract param values and metrics
         param_values = df['param_value'].values
@@ -257,7 +300,7 @@ def plot_multi_dataset_training_time(param_name, datasets=['shuttle', 'campaign'
     folder_name, file_name = param_file_map[param_name]
     fig, ax = plt.subplots(figsize=(12, 7))
     
-    colors = {'shuttle': '#1f77b4', 'campaign': '#ff7f0e', 'fraud': '#2ca02c'}
+    colors = {'shuttle': '#66C2A5', 'campaign': '#FC8D62', 'fraud': '#8DA0CB'}
     markers = {'shuttle': 'o', 'campaign': 's', 'fraud': '^'}
     use_log_scale = param_name in ['n_estimators', 'max_samples']
     
@@ -268,7 +311,16 @@ def plot_multi_dataset_training_time(param_name, datasets=['shuttle', 'campaign'
             print(f"Warning: {file_path} not found, skipping {dataset}")
             continue
             
-        df = pd.read_csv(file_path)
+        df = safe_read_csv(file_path)
+
+            
+        if df is None:
+
+            
+            print(f"Warning: Failed to read {file_path}, skipping {dataset}")
+
+            
+            continue
         param_values = df['param_value'].values
         
         param_values_numeric = []
@@ -333,7 +385,7 @@ def plot_multi_dataset_stability(param_name, datasets=['shuttle', 'campaign', 'f
     folder_name, file_name = param_file_map[param_name]
     fig, ax = plt.subplots(figsize=(12, 7))
     
-    colors = {'shuttle': '#1f77b4', 'campaign': '#ff7f0e', 'fraud': '#2ca02c'}
+    colors = {'shuttle': '#66C2A5', 'campaign': '#FC8D62', 'fraud': '#8DA0CB'}
     markers = {'shuttle': 'o', 'campaign': 's', 'fraud': '^'}
     use_log_scale = param_name in ['n_estimators', 'max_samples']
     
@@ -344,7 +396,16 @@ def plot_multi_dataset_stability(param_name, datasets=['shuttle', 'campaign', 'f
             print(f"Warning: {file_path} not found, skipping {dataset}")
             continue
             
-        df = pd.read_csv(file_path)
+        df = safe_read_csv(file_path)
+
+            
+        if df is None:
+
+            
+            print(f"Warning: Failed to read {file_path}, skipping {dataset}")
+
+            
+            continue
         param_values = df['param_value'].values
         
         param_values_numeric = []
@@ -405,7 +466,7 @@ def plot_multi_dataset_pr_tradeoff(param_name, datasets=['shuttle', 'campaign', 
     folder_name, file_name = param_file_map[param_name]
     fig, ax = plt.subplots(figsize=(12, 7))
     
-    colors = {'shuttle': '#1f77b4', 'campaign': '#ff7f0e', 'fraud': '#2ca02c'}
+    colors = {'shuttle': '#66C2A5', 'campaign': '#FC8D62', 'fraud': '#8DA0CB'}
     markers = {'shuttle': 'o', 'campaign': 's', 'fraud': '^'}
     
     for dataset in datasets:
@@ -415,7 +476,16 @@ def plot_multi_dataset_pr_tradeoff(param_name, datasets=['shuttle', 'campaign', 
             print(f"Warning: {file_path} not found, skipping {dataset}")
             continue
             
-        df = pd.read_csv(file_path)
+        df = safe_read_csv(file_path)
+
+            
+        if df is None:
+
+            
+            print(f"Warning: Failed to read {file_path}, skipping {dataset}")
+
+            
+            continue
         
         precision_mean = df['precision_mean'].values
         precision_std = df['precision_std'].values
@@ -490,7 +560,7 @@ def plot_multi_dataset_efficiency(param_name, datasets=['shuttle', 'campaign', '
     folder_name, file_name = param_file_map[param_name]
     fig, ax = plt.subplots(figsize=(12, 7))
     
-    colors = {'shuttle': '#1f77b4', 'campaign': '#ff7f0e', 'fraud': '#2ca02c'}
+    colors = {'shuttle': '#66C2A5', 'campaign': '#FC8D62', 'fraud': '#8DA0CB'}
     markers = {'shuttle': 'o', 'campaign': 's', 'fraud': '^'}
     
     for dataset in datasets:
@@ -500,7 +570,16 @@ def plot_multi_dataset_efficiency(param_name, datasets=['shuttle', 'campaign', '
             print(f"Warning: {file_path} not found, skipping {dataset}")
             continue
             
-        df = pd.read_csv(file_path)
+        df = safe_read_csv(file_path)
+
+            
+        if df is None:
+
+            
+            print(f"Warning: Failed to read {file_path}, skipping {dataset}")
+
+            
+            continue
         
         training_times = df['training_time_mean'].values
         f1_mean = df['f1_score_mean'].values
@@ -559,7 +638,13 @@ def plot_parameter_sensitivity_heatmap(datasets=['shuttle', 'campaign', 'fraud']
             file_path = os.path.join(results_base_path, dataset, folder_name, file_name)
             
             if os.path.exists(file_path):
-                df = pd.read_csv(file_path)
+                df = safe_read_csv(file_path)
+
+                if df is None:
+
+                    print(f"Warning: Failed to read {file_path}, skipping {dataset}")
+
+                    continue
                 best_f1 = df['f1_score_mean'].max()
                 row_data[param_name] = best_f1
             else:
@@ -613,7 +698,7 @@ def plot_multi_dataset_improvement(param_name, datasets=['shuttle', 'campaign', 
     folder_name, file_name = param_file_map[param_name]
     fig, ax = plt.subplots(figsize=(12, 7))
     
-    colors = {'shuttle': '#1f77b4', 'campaign': '#ff7f0e', 'fraud': '#2ca02c'}
+    colors = {'shuttle': '#66C2A5', 'campaign': '#FC8D62', 'fraud': '#8DA0CB'}
     markers = {'shuttle': 'o', 'campaign': 's', 'fraud': '^'}
     use_log_scale = param_name in ['n_estimators', 'max_samples']
     
@@ -624,7 +709,16 @@ def plot_multi_dataset_improvement(param_name, datasets=['shuttle', 'campaign', 
             print(f"Warning: {file_path} not found, skipping {dataset}")
             continue
             
-        df = pd.read_csv(file_path)
+        df = safe_read_csv(file_path)
+
+            
+        if df is None:
+
+            
+            print(f"Warning: Failed to read {file_path}, skipping {dataset}")
+
+            
+            continue
         param_values = df['param_value'].values
         
         param_values_numeric = []
@@ -688,7 +782,7 @@ def plot_statistical_comparison(param_name, datasets=['shuttle', 'campaign', 'fr
     folder_name, file_name = param_file_map[param_name]
     fig, ax = plt.subplots(figsize=(12, 7))
     
-    colors = {'shuttle': '#1f77b4', 'campaign': '#ff7f0e', 'fraud': '#2ca02c'}
+    colors = {'shuttle': '#66C2A5', 'campaign': '#FC8D62', 'fraud': '#8DA0CB'}
     
     box_data = []
     labels = []
@@ -701,7 +795,16 @@ def plot_statistical_comparison(param_name, datasets=['shuttle', 'campaign', 'fr
             print(f"Warning: {file_path} not found, skipping {dataset}")
             continue
             
-        df = pd.read_csv(file_path)
+        df = safe_read_csv(file_path)
+
+            
+        if df is None:
+
+            
+            print(f"Warning: Failed to read {file_path}, skipping {dataset}")
+
+            
+            continue
         f1_mean = df['f1_score_mean'].values
         f1_std = df['f1_score_std'].values
         
@@ -780,7 +883,7 @@ def plot_pareto_front_3d(param_name, datasets=['shuttle', 'campaign', 'fraud'],
     fig = plt.figure(figsize=(14, 10))
     ax = fig.add_subplot(111, projection='3d')
     
-    colors = {'shuttle': '#1f77b4', 'campaign': '#ff7f0e', 'fraud': '#2ca02c'}
+    colors = {'shuttle': '#66C2A5', 'campaign': '#FC8D62', 'fraud': '#8DA0CB'}
     markers = {'shuttle': 'o', 'campaign': 's', 'fraud': '^'}
     
     for dataset in datasets:
@@ -790,7 +893,16 @@ def plot_pareto_front_3d(param_name, datasets=['shuttle', 'campaign', 'fraud'],
             print(f"Warning: {file_path} not found, skipping {dataset}")
             continue
             
-        df = pd.read_csv(file_path)
+        df = safe_read_csv(file_path)
+
+            
+        if df is None:
+
+            
+            print(f"Warning: Failed to read {file_path}, skipping {dataset}")
+
+            
+            continue
         
         f1_mean = df['f1_score_mean'].values
         f1_std = df['f1_score_std'].values
