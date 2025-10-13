@@ -33,24 +33,29 @@ Stellenbosch, South Africa \\
 \maketitle
 
 \begin{abstract}
-TODO
+Isolation Forests are powerful tools to use for anomaly detection due to their computational efficiency and strong performance. However, careful consideration is required for the selection of the control parameters as they greatly affect the performance of the model. This paper presents an empirical evaluation of the five primary control parameters: number of estimators, maximum samples, contamination, maximum features, and bootstrap sampling. This evaluation is conducted over three diverse datasets. Through systematic single-parameter and multi-parameter interaction analyses, the impact of the parameters on performance metrics such as F1-score, precision, recall and training times is assessed. Ten iterations per configuration is considered to ensure robustness. The findings reveal that models often converge within 50-125 estimators, and that 25 estimators suffice for computationally constrained scenarios. An empirical rule of $\sqrt{n}$ for the maximum samples parameter narrowly outperforms the conventional fixed value of 256 for large datasets. The contamination parameter is highly sensitive to misspecification, and it is safer to overestimate this parameter when it is unknown. Maximum features exhibit a strong dataset dependence, while the bootstrap control parameter has negligible impact on any of the datasets.
 \end{abstract}
 
 \begin{IEEEkeywords}
-TODO
+	Isolation Forest, Anomaly Detection, Parameter Sensitivity, Estimators, Maximum Samples, Contamination, Maximum Features, Bootstrap
 \end{IEEEkeywords}
 
 \section{Introduction}
 % Start with purpose
-Employing Isolation Forests to solve anomaly detection problems involves selecting numerous control parameters which affect the model's ability to correctly identify anomalies. When used properly, Isolation Forests are powerful tools with significant discriminative power, especially considering their simplicity.
+Employing Isolation Forests to solve anomaly detection problems involves selecting numerous control parameters which affect the model's ability to correctly identify anomalies. When used properly, Isolation Forests are powerful tools with significant discriminative power, especially considering their simplicity. Understanding parameter sensitivity is crucial for practitioners deploying these models in real-world applications. 
 
 % then what was done
+A comprehensive empirical evaluation of the five Isolation Forest control parameters across three diverse datasets is presented. Datasets with fewer than 5000 observations initially experimented with showed unstable performance regardless of parameter selection, therefore making sensitivity analysis infeasible. A choice of datasets with significantly more observations was therefore decided upon. Each parameter is investigated individually, whilst holding others at baseline values. Thereafter, multi-parameter interactions are further considered. Ten iterations per configuration are performed to assess stability and variance. The performance is evaluated over multiple metrics including F1-score, precision, recall, ROC-AUC and training time. Empirical rules are proposed for the choice of some parameter values.  
 
 % define "anomalies"
+Anomalies are defined as rare observations that deviate significantly from the majority of the data points. They are characterised by being sparse and diverse, meaning they have a low frequency and exhibit different patterns.
 
 % main finding
+The models tend to converge with 50-125 estimators for most datasets, with 25 sufficient for resource-constrained situations. A rule of $\sqrt{n}$ for the maximum samples outperforms a fixed value of 256 for large datasets. The contamination parameter is not robust to misspecification, with overestimation proving safer than underestimation. The maximum features parameter exhibits strong dataset dependence, whilst the bootstrap parameter demonstrates negligible impact across all evaluated datasets.
 
 % report structure description
+The remainder of this paper is organised as follows. Section 2 presents the theoretical background of Isolation Forests and describes each control parameter. Section 3 details the implementation framework and experimental setup. Section 4 describes the datasets, evaluation metrics, and experimental design. Section 5 presents results and practical guidelines for parameter selection. Section 6 concludes with recommendations for practitioners.
+
 
 \section{Background}
 The theoretical background of Isolation Forests is presented in this section. The control parameters of the algorithm are also described.
@@ -161,7 +166,7 @@ Two effects occur when the model cannot correctly identify anomalous instances p
 
 
 \section{Implementation}
-The approach, tools, and experimental set-up of the Isolation Forest control parameter tests are all described in this section.
+The approach, tools, and experimental setup of the Isolation Forest control parameter tests are all described in this section.
 \subsection{Tools and Libraries}
 This implementation was created using Python. NumPy\cite{harris2020array} is used for numerical computations. Pandas\cite{reback2020pandas} is used for data manipulation and analysis. Matplotlib\cite{Hunter:2007} is used for data visualisation and plotting. Scikit-learn\cite{scikit-learn} was used extensively fo modelling, evaluation, and the evaluation metrics.
 \subsection{Isolation Forest Algorithm}
