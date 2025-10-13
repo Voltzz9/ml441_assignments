@@ -53,6 +53,7 @@ Employing Isolation Forests to solve anomaly detection problems involves selecti
 % report structure description
 
 \section{Background}
+The theoretical background of Isolation Forests is presented in this section. The control parameters of the algorithm are also described.
 \subsection{Isolation Forests}
 % background inituition
 % main idea
@@ -60,7 +61,7 @@ Employing Isolation Forests to solve anomaly detection problems involves selecti
 The majority of existing model-based approaches to anomaly detection construct a profile of normal instances, then they identify instances that do not conform to this normal profile as anomalies \cite{iforest}. Liu et al. (2008) proposed a fundamentally different model-based method that explicitly isolates anomalies instead of profiles normal points, Isolation Forests. Here, isolation refers to separating an instance from the rest of the instances. This is ideal for an anomaly detection problem context, since anomalies are by nature sparse and diverse.
 
 % iforest is bettern than statisitcal method, classification-based methods, clustering-based method (they all use normal )
-Normal profile methods, since not optimised for anomaly detection, often lead to too many false positives or little to no anomalies detected at all. These methods are also constrained to low dimensional data and small data size since they require significant computational power. Isolation Forests on the other hand take advantage of anomaly datasets consisting of fewer observations for the target class, and anomalies having feature values distinct from the rest of the data. Due to the nature of anomaly observations, they are isolated closer to the root of the tree. This forms the foundation of Isolation Trees.
+Normal profile methods, since not optimised for anomaly detection, often lead to too many false positives or little to no anomalies detected at all. These methods are also constrained to low dimensional data and small data size since they require significant computational power. Isolation Forests, on the other hand, take advantage of anomaly datasets consisting of fewer observations for the target class, and anomalies having feature values distinct from the rest of the data. Due to the nature of anomaly observations, they are isolated closer to the root of the tree. This forms the foundation of isolation trees.
 
 Isolation Forests involve an ensemble of isolation trees where the predicted anomalies are the observations with the shortest average paths across the trees. Using this model for anomaly detection involves two stages. The first stage constructs isolation trees by recursively partitioning. This training stage is described in Algorithm~\ref{alg:iforest} and Algorithm~\ref{alg:itree} \cite{iforest2}.
 
@@ -112,16 +113,16 @@ The iTree algorithm recursively partitions the dataset by randomly selecting a f
 % original paper parms num est & max samples
 There are five control parameters to consider namely: the number of estimators, the maximum samples, the contamination, the maximum features, and whether to first bootstrap sample.
 
-The number of trees parameter determines the number of base estimators in the ensemble. This parameter is denoted by $t$ in Algorithm~\ref{alg:iforest}. The performance of Isolation Forests converges quickly with a very small number of trees \cite{iforest}.
+The number of estimators parameter determines the number of base trees in the ensemble. This parameter is denoted by $t$ in Algorithm~\ref{alg:iforest}. The performance of Isolation Forests converges quickly with a very small number of trees \cite{iforest}.
 
 
-The maximum samples describes the number of sample observations to draw from the training data for each base estimator. The subsampling size is denoted by $\psi$ in Algorithm~\ref{alg:iforest}. Only a small sampling size is required to achieve high detection performance with high efficiency \cite{iforest}. Setting $\psi$ to 256 often suffices for anomaly detection across a wide range of data \cite{iforest2}.
+The maximum samples parameter describes the number of sample observations to draw from the training data for each base estimator. This subsampling size is denoted by $\psi$ in Algorithm~\ref{alg:iforest}. Only a small sampling size is required to achieve high detection performance with high efficiency \cite{iforest}. Setting $\psi$ to 256 often suffices for anomaly detection across a wide range of data \cite{iforest2}.
 
 % contamination additional parameter
 Contamination refers to the proportion of anomalies present in the dataset. It is defined as the number of anomalies divided by total number of observations. When set to a specific value between 0 and 0.5, it determines the threshold on the anomaly scores such that approximately that fraction of the training samples are labelled as outliers. In the original paper, the threshold is automatically fixed at an offset of -0.5, following the original Isolation Forest formulation, where inliers typically yield scores near 0 and outliers near -1, allowing the model to separate them without prior knowledge of the true contamination level. Since this parameter directly influences the threshold for anomaly detection, mis-tuning will directly increase false positives or false negative rates.
 
 % max features additional parameter
-The maximum features describes how many features are selected at random before tree construction to train each base estimator. Introducing randomness can help with with high-dimensional data, but may increase instability if set too low.
+The maximum features describes how many features are selected at random before tree construction, and are used to train each base estimator. Introducing randomness can help with with high-dimensional data, but may increase instability if set too low.
 
 % bootstrap additional parameter 
 The bootstrap parameter controls the manner in which sample observations are drawn for each tree. This determines whether sampling is done with or without replacement. That is, sub-sample $X'$ is randomly sampled with or without replacement in Algorithm~\ref{alg:iforest} from $X$. Bootstrap resampling can lead to marginal improvements across classification metrics \cite{Choi2025Impact}.
@@ -156,8 +157,11 @@ The anomaly score $s(\boldsymbol{x}, \psi)$ for instance $\boldsymbol{x}$ is com
 
 where $c(\psi)$ is the average path length of unsuccessful searches and $E(h(\boldsymbol{x}))$ is the average depth from the forest of isolation trees. If the score of an observation $s$ is close to 1, the observation is an anomaly. If an observation has a score much smaller than 0.5, then it is regarded as a normal instance. However, if all observations return a score of approximately 0.5, then there are no distinct anomalies.
 
+Two effects occur when the model cannot correctly identify anomalous instances properly. Swamping occurs when wrongly identifying normal instances are classified as anomalies, typically occurring when normal instances are too close to anomalies. This increases the number of partitions required to isolate anomalies, making them less distinguishable. Masking occurs when the forest fails to identify anomalies because too many anomalies exist in a cluster. This makes them conceal one another. In this case, the path lengths required to isolate each anomaly also increases.
+
 
 \section{Implementation}
+The approach, tools, and experimental set-up of the Isolation Forest control parameter tests are all described in this section.
 \subsection{Tools and Libraries}
 This implementation was created using Python. NumPy\cite{harris2020array} is used for numerical computations. Pandas\cite{reback2020pandas} is used for data manipulation and analysis. Matplotlib\cite{Hunter:2007} is used for data visualisation and plotting. Scikit-learn\cite{scikit-learn} was used extensively fo modelling, evaluation, and the evaluation metrics.
 \subsection{Isolation Forest Algorithm}
@@ -165,7 +169,7 @@ This implementation was created using Python. NumPy\cite{harris2020array} is use
 The Scikit-learn library \cite{scikit-learn} implementation of the Isolation Forest algorithm described in the background section is used to detect anomalies across three varied datasets. This implementation returns the anomaly score for each observation. The path length to an observation in the a tree, averaged over a forest of isolation trees, is used as a measure of normality and the decision function. When the Isolation Forest collectively produces shorter path length for a particular observation, it is likely to be an anomaly. The maximum depth of each tree is $\lceil log_2(n) \rceil$ where $n$ is the number of samples used to build the tree.
 
 % our setup
-A custom framework is built around the base Isolation Tree implementation to track evaluation metric means and their standard deviations over a specified number of runs. The control parameter comparisons are split into two sections. First, the analysis is conducted on each dataset individually and all results are saved. Plots and statistical tests are performed for the individual datasets to compare the control parameters. Second, the results from the individual datasets tests are compared across datasets separately to analyse the data-dependent effects.
+A custom framework is built around the base Isolation Forest implementation to track evaluation metric means and their standard deviations over a specified number of runs. The control parameter comparisons are split into two sections. First, the analysis is conducted on each dataset individually and all results are saved. Plots and statistical tests are performed for the individual datasets to compare the control parameters. Second, the results from the individual datasets tests are compared across datasets separately to analyse the data-dependent effects.
 
 
 
@@ -173,12 +177,12 @@ A custom framework is built around the base Isolation Tree implementation to tra
 A random seed of 12 is used for all stochastic procedures to ensure reproducibility. All tests are conducted on a Fedora Linux 41 system with a 13th Gen Intel Core i3-13100 CPU with 16 GiB of memory. The computationally significant portions of the algorithm are running the algorithm with a large ensemble size and also a large parameter grid for some parameter combinations. The code for this paper is available on GitHub \cite{github}.
 \section{Empirical Process}
 % 20 MARKS
-The datasets and their rationale are described in this section. This is followed by an explanation of the evaluation metrics used along with the experimental design. Finally, the overall analysis framework is outlined.
+The datasets and their rationale are described in this section. This is followed by an explanation of the evaluation metrics used along with the experimental design.
 \subsection{Datasets}
 
 % table summary
 % rationale for selection
-The datasets used for control parameter evaluation are described in Table~\ref{tab:datasets} and are all sourced from ADBench \cite{han2022adbench}. These datasets provide a good variety in the number of observations, features, anomaly rate, and the difficulty of the anomaly detection problem. This enables a thorough and balanced representation of the performance of the control parameters in different problem settings.
+The datasets used for control parameter evaluation are described in Table~\ref{tab:datasets} and are all sourced from ADBench \cite{han2022adbench}. These datasets provide a variety in the number of observations, features, anomaly rate, and the difficulty of the anomaly detection problem. This enabled a thorough and balanced representation of the performance of the control parameters in different problem settings.
 \begin{table}[H]
 	\centering
 	\caption{Summary of Datasets Used}
@@ -198,36 +202,25 @@ The datasets used for control parameter evaluation are described in Table~\ref{t
 % metrics and justification
 Given the nature of anomaly detection as an imbalanced classification problem, metrics must account for the typically small proportion of anomalies in real-world datasets, as evidenced by the 0.17\% anomaly rate in the \textit{fraud} dataset compared to 11.27\% in \textit{campaign}. The F1-score served as the primary performance indicator, providing a balanced measure between precision and recall. Precision quantified the proportion of correctly identified anomalies among all flagged instances, which is critical in applications where false alarms incur significant investigation costs. Recall measured the proportion of true anomalies successfully detected, representing the algorithm's sensitivity to anomalous patterns. Both metrics are essential as they capture the trade-off inherent in anomaly detection: aggressive detection (high recall) risks overwhelming analysts with false positives, while conservative detection (high precision) may miss critical anomalies.
 
-ROC-AUC (Receiver Operating Characteristic Area Under Curve) and PR-AUC (Precision-Recall Area Under Curve) evaluated the model's ability to rank anomalies correctly across different decision thresholds. ROC-AUC assesses overall discriminative power, while PR-AUC is particularly informative for imbalanced datasets as it focuses on performance in the positive (anomaly) class. These metrics are computed using the anomaly scores from Isolation Forest's \texttt{score\_samples()} method, which provides a continuous ranking rather than binary classifications.
+ROC-AUC (Receiver Operating Characteristic Area Under Curve) and PR-AUC (Precision-Recall Area Under Curve) evaluated the model's ability to rank anomalies correctly across different decision thresholds. ROC-AUC assesses overall discriminative power, while PR-AUC is particularly informative for imbalanced datasets as it focuses on performance in the positive (anomaly) class. These metrics were computed using the anomaly scores from Isolation Forest's \texttt{score\_samples()} method, which provides a continuous ranking rather than binary classifications.
 
-Since Isolation Forests are stochastic in nature with regards to feature selection during tree construction, performance does vary between runs.The Jaccard similarity coefficient was used to measure the performance consistency between runs. Training time and memory usage were also tracked to asses the scalability and computational resource management. The average path length statistic was also monitored.
+Since Isolation Forests are stochastic in nature with regards to feature selection during tree construction, performance does vary between runs.The Jaccard similarity coefficient was used to measure the performance consistency between runs. Training time and memory usage were also tracked to assess the scalability and computational resource management. The average path length statistic was also monitored.
 \subsection{Experimental Design}
 \subsubsection{Single-Parameter Analysis}
 %Methodology: Vary one parameter while holding others at defaults
 Each control parameter was individually varied whilst holding all the others at their base parameters. These base parameters are 100 estimators, 256 maximum samples, the actual contamination percentage of the dataset, all features included and bootstrap sampling disabled. For each configuration, 10 runs were performed with the random seed incremented for each run. The mean, minimum, maximum and standard deviation of all the performance metrics were recorded.
 
 % n est
-For the number of estimators in the ensemble, the range considered was $n_\text{estimators} \in \{1,2,...,25,50,75,100,125,175,200\}$. Originally, a much broader range with larger intervals up to 2000 was considered. However, convergence analysis revealed that the ensemble often converged before 100/200 estimators, therefore, a narrower set of values was considered to more closely monitor trends. The range for the maximum samples parameter was $n_\text{max samples} \in \{4,8,12,16,20,24,28,32,64,128,256\}$. The smaller interval points captured more specific information about where the model converged, and the larger gaps considered the larger parameter values to obtain a broader view of the performance. The contamination parameter was considered over the values $\text{contamination} \in \{0.01, 0.02, 0.03, 0.05, 0.07, 0.10, 0.15, 0.20, 0.25, 0.30\}$. The contamination parameter is obviously problem dependent, and, in a true unsupervised learning scenario, unknown. The maximum features parameter was varied linearly from 1 up to the total number of available features (capped at 20) using integer increments. Bootstrap sub-sampling was also considered.
+For the number of estimators in the ensemble, the range considered was $n_\text{estimators} \in \{1,2,...,25,50,75,100,125,175,200\}$. Originally, a much broader range with larger intervals up to 2000 was considered. However, convergence analysis revealed that the ensemble often converged before 100/200 estimators, therefore, a narrower set of values was considered to more closely monitor trends. The range for the maximum samples parameter was $n_\text{max samples} \in \{4,8,12,16,20,24,28,32,64,128,256, 512\}$. The smaller interval points captured more specific information about where the model converged, and the larger gaps considered the larger parameter values to obtain a broader view of the performance. The contamination parameter was considered over the values $\text{contamination} \in \{0.01, 0.02, 0.03, 0.05, 0.07, 0.10, 0.15, 0.20, 0.25, 0.30\}$. The contamination parameter is obviously problem dependent, and, in a true unsupervised learning scenario, unknown. The maximum features parameter was varied linearly from 1 up to the total number of available features (capped at 20) using integer increments. Bootstrap sub-sampling was also considered.
 
 Three or four plots were created for each parameter experiment. Most notably, the convergence plot including F1-score, precision, and recall against the parameter value was created. This plot included the standard deviation in addition to the mean to illustrate the variability over the 10 runs. The training time scaling was plotted by considering the training time against the parameter plotted on a log-log scale. For parameters affecting the precision-recall balance (such as contamination and maximum samples), precision-recall curves were constructed to visualize the trade-offs inherent in different parameter configurations.
 
 The coefficient of variation was computed for the F1-score across the 10 runs to quantify stability, with lower CV values indicating more consistent performance. For the contamination parameter specifically, calibration curves were generated to assess whether the specified contamination level reliably controlled the proportion of instances flagged as anomalies, providing insight into the parameter's predictive calibration.
 
 \subsubsection{Multi-Parameter Interaction Analysis}
-Interactions between the maximum features and number of estimator parameters were considered by running all the combinations of the previously described maximum feature range and the number of estimators in intervals of three from one to 25. For example, for the \textit{shuttle} dataset, $9 \times 9 = 81$ combinations were considered. The training time and F1-scores were plotted in a heat map to investigate any correlations.
+Interactions between the maximum features and number of estimator parameters were considered by running all the combinations of the previously described maximum feature range and the number of estimators in intervals of three from one to 25. For example, for the \textit{shuttle} dataset, $9 \times 9 = 81$ combinations were considered. The training time and F1-scores were plotted in a heat map to investigate any correlations. The interaction between the contamination parameter and bootstrap parameter was also investigated.
 \subsubsection{Cross-Dataset Comparison}
 The convergence curves along with the training times further were analysed across the various datasets in the same plots. This enabled the identification of data specific trends. The variation across runs was also plotted across the various datasets in order to compare the stability of the application to the different datasets.
-
-\subsection{Analysis Framework}
-% convergence analysis
-
-% subsampling anayside
-
-%contamination analysis
-
-% feature subsampling imapact
-
-% bootstrap
 
 
 
@@ -239,7 +232,7 @@ The observed effects of the control parameters are described in this section. An
 \subsection{Number of Estimators}
 \subsubsection{Performance Convergence}
 % show multi plot
-Generally, the performance reported by the F1-score indicated that the model converged with 50 estimators in the ensemble. This is illustrated in Figure~\ref{fig:n_estimators_f1}. The difference in F1-scores after convergence showed the varying complexity of the anomaly detection problems in each of the datasets. All datasets datasets maintained a similar precision and recall value even as the number of estimators were increased. This is observed in Figure~\ref{fig:n_estimators_campaign} and Figure~\ref{fig:n_estimators_fraud}. For the fraud dataset, the F1-score only fully plateaued after 125 estimators were used in the ensemble. 
+Generally, the performance reported by the F1-score indicated that the model converged with 50 estimators in the ensemble. This is illustrated in Figure~\ref{fig:n_estimators_f1}. The  datasets reported quite different F1-scores after convergence, which showed the varying complexity of the anomaly detection problems in each of the datasets. This is observed in Figure~\ref{fig:n_estimators_campaign} and Figure~\ref{fig:n_estimators_fraud}. For the fraud dataset, the F1-score only fully plateaued after 125 estimators were used in the ensemble. 
 
 It can therefore be concluded that if 125 estimators are used, the model will likely converge. For computationally constrained circumstances, as few as 25 estimators will suffice for most use cases.
 \begin{figure}[H]
@@ -273,7 +266,7 @@ $1/n$, leading to the observed stability beyond 125 estimators. A lower coeffici
 
 \subsubsection{Computational Efficiency}
 % f1 vs training time scatter
-The training time of the model scaled linearly as the number of estimators was increased. This relationship, observed in Figure~\ref{fig:n_estimators_tt}, indicates that the per-estimator training cost is approximately constant across the range of the number of estimators. Also, there's no significant overhead or parallelisation bottleneck as the ensemble grows. As expected, the fraud dataset maintained the highest training time throughout the experiment since it contains the most observations.
+The training time of the model scaled linearly as the number of estimators was increased. This relationship, observed in Figure~\ref{fig:n_estimators_tt}, indicates that the per-estimator training cost is approximately constant across the range of the number of estimators. Also, there was no significant overhead or parallelisation bottleneck as the ensemble grows. As expected, the fraud dataset maintained the highest training time throughout the experiment since it contains the most observations.
 \begin{figure}[H]
 	\centering
 	\includegraphics[width=0.95\linewidth]{../results/multi_dataset/n_estimators_training_time.pdf}
@@ -328,7 +321,7 @@ The slope of the training time against maximum samples curve for the campaign da
 	\label{fig:tt_samples_campaign}
 \end{figure}
 
-Based on these findings, practitioners should set the maximum samples parameter at the knee of the curve (around 12-64 depending on dataset complexity) to balance training efficiency with model performance, as exceeding this point yields diminishing returns in F1-score improvement while unnecessarily increasing computational cost.
+Based on these findings, if computational efficiency is paramount, practitioners should set the maximum samples parameter at the knee of the curve (around 12-64 depending on dataset complexity) to balance training efficiency with model performance. Exceeding this point yields diminishing returns in F1-score improvement while unnecessarily increasing computational cost.
 
 
 \subsubsection{Empirical Rule Derivation}
@@ -372,7 +365,7 @@ Underestimating contamination severely degraded performance in the campaign data
 
 \subsubsection{Calibration Analysis}
 % idk have a closer look
-Since the algorithm directly controls the number of predicted anomalies with the contamination parameter, the calibration error is near 0 for all parameter values. This is shown in Figure~\ref{fig:contamination_shuttle_calibration}.
+Since the algorithm directly controls the number of predicted anomalies with the contamination parameter, the calibration error was near 0 for all parameter values. This is shown in Figure~\ref{fig:contamination_shuttle_calibration}.
 \begin{figure}[H]
 	\centering
 	\includegraphics[width=0.95\linewidth]{../results/shuttle/contamination/f1_vs_calibration_error.pdf}
@@ -471,7 +464,7 @@ The performance only slightly increased using the bootstrap parameter for the fr
 	\centering
 	\begin{tabular}{|l|c|c|c|c|}
 		\hline
-		\textbf{Dataset} & \textbf{Bootstrap=True} & \textbf{Bootstrap=False} & \textbf{Difference} & \textbf{\% Change} \\ 
+		\textbf{Dataset} & \textbf{Bootstrap=T} & \textbf{Bootstrap=F} & \textbf{Difference} & \textbf{\% Change} \\ 
 		\hline
 		shuttle & 0.957305 & 0.958800 & -0.001496 & -0.156021 \\ 
 		\hline
@@ -490,10 +483,19 @@ The performance only slightly increased using the bootstrap parameter for the fr
 % fig: grouped bar
 
 %Does bootstrap effect depend on contamination level?
+The interaction between the bootstrap and contamination control parameters was explored. Experimental results from the three datasets indicated that these two variables were completely independent from each other, shown for the campaign dataset in Figure~\ref{fig:bootstrap_int_campaign}. 
 
+
+\begin{figure}[H]
+	\centering
+	\includegraphics[width=0.95\linewidth]{../results/campaign/bootstrap/bootstrap_contamination_interaction.pdf}
+	\caption{Bootstrap interaction with contamination for campaign dataset.}
+	\label{fig:bootstrap_int_campaign}
+\end{figure}
 
 \subsection{Practical Guidelines}
-% table with guide
+For the majority of applications, 100-125 estimators will provide high anomaly detection ability. In resource-constrained situations, 25-50 estimators provide acceptable performance with faster training times. The rules of thumb to use $\sqrt{n}$ maximum samples outperforms the fixed value of 256 for large datasets. The swamping effect much be monitored if the F1-score drops with a larger parameter value. For best efficiency, 12-64 samples provides decent performance. The contamination parameter value should be tuned carefully since it is not robust to misspecification. For low-dimensional data, all the features should be used. However for high-dimensional data ($> 30$ features), restricting to few features reduces noise. The bootstrap parameter can be safely left disabled since it provided no real performance benefit. The only case it might be useful is for extremely small datasets where sampling variance is high.
+
 \section{Conclusions}
 
 
